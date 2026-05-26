@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-// Zwykła klasa bez MonoBehaviour (zgodnie z Twoim modelem obiektowym)
 public class TrackMesh
 {
     public List<Vector2> leftEdge = new List<Vector2>();
