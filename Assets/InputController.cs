@@ -11,7 +11,7 @@ public class InputController : MonoBehaviour
     public int filterWindowSize = 3;
     public int smoothingPasses = 2;
     public float minPointDistance = 0.5f;
-
+    public MinimapSetup minimapCamera;
     private LineRenderer lineRenderer;
 
     private bool isTrackDrawn = false;
@@ -48,17 +48,70 @@ public class InputController : MonoBehaviour
 
         if (Input.GetMouseButtonUp(0) && rawPoints.Count > 0)
         {
+            Vector2 startPoint = rawPoints[0];
+            Vector2 endPoint = rawPoints[rawPoints.Count - 1];
+
+            float dist = Vector2.Distance(startPoint, endPoint);
+
+            if (dist > 2f && rawPoints.Count > 2)
+            {
+                Vector2 endDir = (rawPoints[rawPoints.Count - 1] - rawPoints[rawPoints.Count - 2]).normalized;
+                Vector2 startDir = (rawPoints[1] - rawPoints[0]).normalized;
+
+                float controlDist = dist * 0.5f;
+
+                Vector2 p0 = endPoint;
+                Vector2 p1 = endPoint + endDir * controlDist;
+                Vector2 p2 = startPoint - startDir * controlDist;
+                Vector2 p3 = startPoint;
+
+                int extraPoints = Mathf.CeilToInt(dist * 2f);
+
+                for (int i = 1; i <= extraPoints; i++)
+                {
+                    float t = (float)i / (extraPoints + 1);
+
+                    Vector2 newPoint = Mathf.Pow(1 - t, 3) * p0 +
+                                       3 * Mathf.Pow(1 - t, 2) * t * p1 +
+                                       3 * (1 - t) * Mathf.Pow(t, 2) * p2 +
+                                       Mathf.Pow(t, 3) * p3;
+
+                    rawPoints.Add(newPoint);
+                }
+            }
+
             ApplyMovingAverage();
 
             UpdateLine(filteredPoints);
 
             isTrackDrawn = true;
+
             Debug.Log("Zapisano! Rysowanie zablokowane. Punkty po filtracji: " + filteredPoints.Count);
 
             TrackGenerator generator = GetComponent<TrackGenerator>();
             if (generator != null)
             {
                 generator.BuildTrackBoundaries(filteredPoints);
+            }
+
+            MinimapSetup minimap = FindObjectOfType<MinimapSetup>();
+            if (minimap != null)
+            {
+                minimap.ConfigureMinimap(filteredPoints);
+            }
+
+            DriveManager dm = FindObjectOfType<DriveManager>();
+            if (dm != null)
+            {
+                dm.ShowButton(filteredPoints);
+            }
+            if (minimapCamera != null)
+            {
+                minimapCamera.ConfigureMinimap(filteredPoints);
+            }
+            else
+            {
+                Debug.LogError("Nie przypisałeś MinimapCamera do skryptu InputController w Inspectorze!");
             }
         }
     }
