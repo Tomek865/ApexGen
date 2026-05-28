@@ -3,159 +3,78 @@ using UnityEngine;
 
 public class TrackGenerator : MonoBehaviour
 {
-    [Header("Parametry Toru")]
-    public float trackWidth = 0.5f;
-    public int splineResolution = 5;
+    [Header("Ustawienia Fizyki Toru")]
+    public float trackWidth = 8f;
+    public float wallHeight = 3f;
+    public float overlap = 1.5f;
 
-    [Header("Wygląd Toru")]
-    public float edgeWidth = 0.2f;
-    public Color edgeColor = Color.white;
-    public Color roadColor = new Color(0.2f, 0.2f, 0.2f);
+    private GameObject trackColliders;
 
-    private TrackMesh currentTrackMesh;
-    private LineRenderer leftEdgeRenderer;
-    private LineRenderer rightEdgeRenderer;
-
-    void Start()
+    public void BuildTrackBoundaries(List<Vector2> points)
     {
-        leftEdgeRenderer = CreateEdgeRenderer("LeftEdge");
-        rightEdgeRenderer = CreateEdgeRenderer("RightEdge");
-    }
+        if (points.Count < 2) return;
+        if (trackColliders != null) Destroy(trackColliders);
 
-    private LineRenderer CreateEdgeRenderer(string edgeName)
-    {
-        GameObject edgeObj = new GameObject(edgeName);
-        edgeObj.transform.SetParent(this.transform);
-
-        LineRenderer lr = edgeObj.AddComponent<LineRenderer>();
-        lr.startWidth = edgeWidth;
-        lr.endWidth = edgeWidth;
-        lr.material = new Material(Shader.Find("Sprites/Default"));
-        lr.startColor = edgeColor;
-        lr.endColor = edgeColor;
-        lr.loop = true;
-        lr.positionCount = 0;
-        lr.transform.position = new Vector3(0, 0, -0.1f);
-
-        return lr;
-    }
-
-    public void BuildTrackBoundaries(List<Vector2> controlPoints)
-    {
-        currentTrackMesh = new TrackMesh();
-        currentTrackMesh.centerLine = CreateSpline(controlPoints);
-
-        List<Vector2> normals = ComputeNormals(currentTrackMesh.centerLine);
-
-        for (int i = 0; i < currentTrackMesh.centerLine.Count; i++)
-        {
-            Vector2 center = currentTrackMesh.centerLine[i];
-            Vector2 normal = normals[i];
-
-            Vector2 leftPoint = center + normal * (trackWidth / 2f);
-            Vector2 rightPoint = center - normal * (trackWidth / 2f);
-
-            currentTrackMesh.leftEdge.Add(leftPoint);
-            currentTrackMesh.rightEdge.Add(rightPoint);
-        }
-
-        DrawEdge(leftEdgeRenderer, currentTrackMesh.leftEdge);
-        DrawEdge(rightEdgeRenderer, currentTrackMesh.rightEdge);
-
-        BuildRoadMesh(currentTrackMesh);
-
-        Debug.Log("TrackGenerator: Tor 3D wygenerowany!");
-    }
-    private void BuildRoadMesh(TrackMesh track)
-    {
-        GameObject roadObj = new GameObject("RoadSurface");
-        roadObj.transform.SetParent(this.transform);
-
-        MeshFilter meshFilter = roadObj.AddComponent<MeshFilter>();
-        MeshRenderer meshRenderer = roadObj.AddComponent<MeshRenderer>();
-
-        meshRenderer.material = new Material(Shader.Find("Sprites/Default"));
-        meshRenderer.material.color = roadColor;
-
-        Mesh mesh = new Mesh();
-
-        int numPoints = track.centerLine.Count;
-
-        Vector3[] vertices = new Vector3[numPoints * 2];
-        int[] triangles = new int[numPoints * 6];
-
-        for (int i = 0; i < numPoints; i++)
-        {
-            vertices[i * 2] = new Vector3(track.leftEdge[i].x, track.leftEdge[i].y, 0);
-            vertices[i * 2 + 1] = new Vector3(track.rightEdge[i].x, track.rightEdge[i].y, 0);
-
-            int currLeft = i * 2;
-            int currRight = i * 2 + 1;
-            int nextLeft = ((i + 1) % numPoints) * 2;
-            int nextRight = (((i + 1) % numPoints) * 2) + 1;
-
-            int triIndex = i * 6;
-
-            triangles[triIndex] = currLeft;
-            triangles[triIndex + 1] = nextLeft;
-            triangles[triIndex + 2] = currRight;
-
-            triangles[triIndex + 3] = currRight;
-            triangles[triIndex + 4] = nextLeft;
-            triangles[triIndex + 5] = nextRight;
-        }
-
-        mesh.vertices = vertices;
-        mesh.triangles = triangles;
-        meshFilter.mesh = mesh;
-    }
-
-    private void DrawEdge(LineRenderer lr, List<Vector2> points)
-    {
-        lr.positionCount = points.Count;
-        for (int i = 0; i < points.Count; i++)
-        {
-            lr.SetPosition(i, new Vector3(points[i].x, points[i].y, 0f));
-        }
-    }
-
-    private List<Vector2> CreateSpline(List<Vector2> points)
-    {
-        List<Vector2> splinePoints = new List<Vector2>();
-        if (points.Count < 3) return points;
+        trackColliders = new GameObject("WidocznyTor3D");
 
         for (int i = 0; i < points.Count; i++)
         {
-            Vector2 p0 = points[(i - 1 + points.Count) % points.Count];
-            Vector2 p1 = points[i];
-            Vector2 p2 = points[(i + 1) % points.Count];
-            Vector2 p3 = points[(i + 2) % points.Count];
+            Vector2 current = points[i];
+            Vector2 next = points[(i + 1) % points.Count];
 
-            for (int j = 0; j < splineResolution; j++)
-            {
-                float t = j / (float)splineResolution;
-                Vector2 a = 2f * p1;
-                Vector2 b = p2 - p0;
-                Vector2 c = 2f * p0 - 5f * p1 + 4f * p2 - p3;
-                Vector2 d = -p0 + 3f * p1 - 3f * p2 + p3;
-                Vector2 pos = 0.5f * (a + (b * t) + (c * t * t) + (d * t * t * t));
-                splinePoints.Add(pos);
-            }
-        }
-        return splinePoints;
-    }
+            Vector3 p1 = new Vector3(current.x, 0, current.y);
+            Vector3 p2 = new Vector3(next.x, 0, next.y);
 
-    private List<Vector2> ComputeNormals(List<Vector2> curve)
-    {
-        List<Vector2> normals = new List<Vector2>();
-        for (int i = 0; i < curve.Count; i++)
-        {
-            Vector2 current = curve[i];
-            Vector2 next = curve[(i + 1) % curve.Count];
-            Vector2 tangent = (next - current).normalized;
-            Vector2 normal = new Vector2(-tangent.y, tangent.x);
-            normals.Add(normal);
+            Vector3 center = (p1 + p2) / 2f;
+            float distance = Vector3.Distance(p1, p2) + overlap;
+
+            Vector3 direction = (p2 - p1).normalized;
+            Quaternion rotation = Quaternion.LookRotation(direction);
+
+            GameObject floor = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            floor.name = "Podloga_" + i;
+            floor.transform.SetParent(trackColliders.transform);
+            floor.transform.position = center + new Vector3(0, -0.25f, 0);
+            floor.transform.rotation = rotation;
+            floor.transform.localScale = new Vector3(trackWidth, 0.5f, distance);
+
+            GameObject leftWall = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            leftWall.name = "LewaSciana_" + i;
+            leftWall.transform.SetParent(trackColliders.transform);
+            leftWall.transform.position =
+                center +
+                (rotation * Vector3.left * (trackWidth / 2f)) +
+                new Vector3(0, wallHeight / 2f, 0);
+
+            leftWall.transform.rotation = rotation;
+            leftWall.transform.localScale = new Vector3(1f, wallHeight, distance);
+
+            GameObject rightWall = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            rightWall.name = "PrawaSciana_" + i;
+            rightWall.transform.SetParent(trackColliders.transform);
+            rightWall.transform.position =
+                center +
+                (rotation * Vector3.right * (trackWidth / 2f)) +
+                new Vector3(0, wallHeight / 2f, 0);
+
+            rightWall.transform.rotation = rotation;
+            rightWall.transform.localScale = new Vector3(1f, wallHeight, distance);
         }
-        return normals;
+
+        Vector2 lastPoint = points[points.Count - 1];
+        Vector2 prevToLast = points[points.Count - 2];
+        Vector3 metaCenter = new Vector3(lastPoint.x, 1f, lastPoint.y);
+        Vector3 metaDir = (new Vector3(lastPoint.x, 0, lastPoint.y) - new Vector3(prevToLast.x, 0, prevToLast.y)).normalized;
+
+        GameObject finishLine = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        finishLine.name = "LiniaMety";
+        finishLine.transform.SetParent(trackColliders.transform);
+        finishLine.transform.position = metaCenter;
+        finishLine.transform.rotation = Quaternion.LookRotation(metaDir);
+        finishLine.transform.localScale = new Vector3(trackWidth, 4f, 1f);
+
+        finishLine.GetComponent<MeshRenderer>().enabled = false;
+        finishLine.GetComponent<BoxCollider>().isTrigger = true;
+        finishLine.AddComponent<FinishLineTrigger>();
     }
 }
