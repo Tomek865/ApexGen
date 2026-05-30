@@ -83,6 +83,7 @@ public class DriveManager : MonoBehaviour
 
     public void StartDriving()
     {
+
         if (startButton != null) startButton.SetActive(false);
 
         LineRenderer drawingLine = GetComponent<LineRenderer>();

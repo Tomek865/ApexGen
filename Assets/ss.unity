@@ -342,13 +342,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 330585543}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 1, z: -10}
+  m_LocalRotation: {x: 0.7071068, y: 0, z: 0, w: 0.7071068}
+  m_LocalPosition: {x: 0, y: 50, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 90, y: 0, z: 0}
 --- !u!114 &330585547
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -612,6 +612,7 @@ GameObject:
   - component: {fileID: 579172930}
   - component: {fileID: 579172931}
   - component: {fileID: 579172932}
+  - component: {fileID: 579172933}
   m_Layer: 0
   m_Name: ApexGenSystem
   m_TagString: Untagged
@@ -793,6 +794,23 @@ MonoBehaviour:
   carPrefab: {fileID: 6533272879470977894, guid: 1a548466f4ec56b428f8104ae3ad1e76, type: 3}
   currentLap: 0
   lapTimes: []
+--- !u!114 &579172933
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 579172927}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dbb2086e34266a04880da514a6a44081, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RacingLineCalculator
+  maxSpeed: 90
+  maxSteeringAngle: 27
+  brakeForce: 350
+  carWidth: 2
+  optimizationIterations: 150
 --- !u!1 &635718599
 GameObject:
   m_ObjectHideFlags: 0
@@ -828,7 +846,7 @@ RectTransform:
   m_AnchorMin: {x: 1, y: 1}
   m_AnchorMax: {x: 1, y: 1}
   m_AnchoredPosition: {x: -20, y: -20}
-  m_SizeDelta: {x: 400, y: 400}
+  m_SizeDelta: {x: 252, y: 252}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &635718601
 MonoBehaviour:
@@ -1306,8 +1324,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d7a7c7dea8837984483e070750292941, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MinimapSetup
-  cameraHeight: 200
-  paddingMultiplier: 2
+  cameraHeight: 500
+  orthographicZoom: 40
+  rightOffset: 10
+  forwardOffset: 25
 --- !u!1 &1663926123
 GameObject:
   m_ObjectHideFlags: 0

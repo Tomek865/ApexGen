@@ -20,24 +20,28 @@ public class InputController : MonoBehaviour
     {
         lineRenderer = GetComponent<LineRenderer>();
         lineRenderer.positionCount = 0;
-        lineRenderer.startWidth = 0.1f;
-        lineRenderer.endWidth = 0.1f;
-        lineRenderer.material = new Material(Shader.Find("Sprites/Default"));
-        lineRenderer.startColor = Color.black;
-        lineRenderer.endColor = Color.black;
+        lineRenderer.startWidth = 8f;
+        lineRenderer.endWidth = 8f;
+        lineRenderer.numCornerVertices = 8;
+        lineRenderer.numCapVertices = 8;
 
-        lineRenderer.loop = true;
+        lineRenderer.material = new Material(Shader.Find("Sprites/Default"));
+        Color asphaltColor = new Color(0.3f, 0.3f, 0.3f, 1f);
+        lineRenderer.startColor = asphaltColor;
+        lineRenderer.endColor = asphaltColor;
+
+        lineRenderer.loop = false;
     }
 
     void Update()
     {
         if (isTrackDrawn) return;
-
         if (Input.GetMouseButton(0))
         {
-            Vector3 mouseScreenPos = new Vector3(Input.mousePosition.x, Input.mousePosition.y, 10f);
+            float depth = Mathf.Abs(Camera.main.transform.position.y);
+            Vector3 mouseScreenPos = new Vector3(Input.mousePosition.x, Input.mousePosition.y, depth);
             Vector3 mousePos = Camera.main.ScreenToWorldPoint(mouseScreenPos);
-            Vector2 currentPoint = new Vector2(mousePos.x, mousePos.y);
+            Vector2 currentPoint = new Vector2(mousePos.x, mousePos.z);
 
             if (rawPoints.Count == 0 || Vector2.Distance(rawPoints[rawPoints.Count - 1], currentPoint) > minPointDistance)
             {
@@ -83,6 +87,7 @@ public class InputController : MonoBehaviour
             ApplyMovingAverage();
 
             UpdateLine(filteredPoints);
+            lineRenderer.loop = true;
 
             isTrackDrawn = true;
 
@@ -92,6 +97,14 @@ public class InputController : MonoBehaviour
             if (generator != null)
             {
                 generator.BuildTrackBoundaries(filteredPoints);
+            }
+
+            RacingLineCalculator calculator = GetComponent<RacingLineCalculator>();
+            if (calculator != null && generator != null)
+            {
+                List<RacingLinePoint> optimalPath = calculator.CalculateOptimalLine(filteredPoints, generator.trackWidth);
+
+                calculator.DrawOptimalLine(optimalPath);
             }
 
             MinimapSetup minimap = FindObjectOfType<MinimapSetup>();
@@ -157,7 +170,7 @@ public class InputController : MonoBehaviour
         lineRenderer.positionCount = points.Count;
         for (int i = 0; i < points.Count; i++)
         {
-            lineRenderer.SetPosition(i, new Vector3(points[i].x, points[i].y, 0f));
+            lineRenderer.SetPosition(i, new Vector3(points[i].x, 0.1f, points[i].y));
         }
     }
 
