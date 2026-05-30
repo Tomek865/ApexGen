@@ -99,6 +99,14 @@ public class InputController : MonoBehaviour
                 generator.BuildTrackBoundaries(filteredPoints);
             }
 
+            RacingLineCalculator calculator = GetComponent<RacingLineCalculator>();
+            if (calculator != null && generator != null)
+            {
+                List<RacingLinePoint> optimalPath = calculator.CalculateOptimalLine(filteredPoints, generator.trackWidth);
+
+                calculator.DrawOptimalLine(optimalPath);
+            }
+
             MinimapSetup minimap = FindObjectOfType<MinimapSetup>();
             if (minimap != null)
             {
