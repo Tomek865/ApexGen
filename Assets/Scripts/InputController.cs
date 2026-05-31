@@ -1,5 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.EventSystems;
+using TMPro;
 
 [RequireComponent(typeof(LineRenderer))]
 public class InputController : MonoBehaviour
@@ -16,6 +18,10 @@ public class InputController : MonoBehaviour
 
     private bool isTrackDrawn = false;
 
+    [Header("UI References")]
+    public TextMeshProUGUI modeButtonText;
+    private bool isDrawingModeActive = true;
+
     void Start()
     {
         lineRenderer = GetComponent<LineRenderer>();
@@ -26,21 +32,28 @@ public class InputController : MonoBehaviour
         lineRenderer.numCapVertices = 8;
 
         lineRenderer.material = new Material(Shader.Find("Sprites/Default"));
-        Color asphaltColor = new Color(0.3f, 0.3f, 0.3f, 1f);
-        lineRenderer.startColor = asphaltColor;
-        lineRenderer.endColor = asphaltColor;
-
+        lineRenderer.startColor = Color.green;
+        lineRenderer.endColor = Color.green;
         lineRenderer.loop = false;
     }
 
     void Update()
     {
-        if (isTrackDrawn) return;
+        if (isTrackDrawn || !isDrawingModeActive) return;
+
+        // Blokada: Rysujemy tylko, jeśli kursor jest nad DrawingPanel
+        if (EventSystem.current.IsPointerOverGameObject())
+        {
+            if (!IsPointerOverDrawingArea()) return;
+        }
+
         if (Input.GetMouseButton(0))
         {
+            // Kamera jest Orthographic i wisi na Y=50, więc łapiemy poprawną głębię
             float depth = Mathf.Abs(Camera.main.transform.position.y);
             Vector3 mouseScreenPos = new Vector3(Input.mousePosition.x, Input.mousePosition.y, depth);
             Vector3 mousePos = Camera.main.ScreenToWorldPoint(mouseScreenPos);
+            
             Vector2 currentPoint = new Vector2(mousePos.x, mousePos.z);
 
             if (rawPoints.Count == 0 || Vector2.Distance(rawPoints[rawPoints.Count - 1], currentPoint) > minPointDistance)
@@ -54,14 +67,12 @@ public class InputController : MonoBehaviour
         {
             Vector2 startPoint = rawPoints[0];
             Vector2 endPoint = rawPoints[rawPoints.Count - 1];
-
             float dist = Vector2.Distance(startPoint, endPoint);
 
             if (dist > 2f && rawPoints.Count > 2)
             {
                 Vector2 endDir = (rawPoints[rawPoints.Count - 1] - rawPoints[rawPoints.Count - 2]).normalized;
                 Vector2 startDir = (rawPoints[1] - rawPoints[0]).normalized;
-
                 float controlDist = dist * 0.5f;
 
                 Vector2 p0 = endPoint;
@@ -70,62 +81,18 @@ public class InputController : MonoBehaviour
                 Vector2 p3 = startPoint;
 
                 int extraPoints = Mathf.CeilToInt(dist * 2f);
-
                 for (int i = 1; i <= extraPoints; i++)
                 {
                     float t = (float)i / (extraPoints + 1);
-
-                    Vector2 newPoint = Mathf.Pow(1 - t, 3) * p0 +
-                                       3 * Mathf.Pow(1 - t, 2) * t * p1 +
-                                       3 * (1 - t) * Mathf.Pow(t, 2) * p2 +
-                                       Mathf.Pow(t, 3) * p3;
-
+                    Vector2 newPoint = Mathf.Pow(1 - t, 3) * p0 + 3 * Mathf.Pow(1 - t, 2) * t * p1 + 3 * (1 - t) * Mathf.Pow(t, 2) * p2 + Mathf.Pow(t, 3) * p3;
                     rawPoints.Add(newPoint);
                 }
             }
 
             ApplyMovingAverage();
-
             UpdateLine(filteredPoints);
             lineRenderer.loop = true;
-
-            isTrackDrawn = true;
-
-            Debug.Log("Zapisano! Rysowanie zablokowane. Punkty po filtracji: " + filteredPoints.Count);
-
-            TrackGenerator generator = GetComponent<TrackGenerator>();
-            if (generator != null)
-            {
-                generator.BuildTrackBoundaries(filteredPoints);
-            }
-
-            RacingLineCalculator calculator = GetComponent<RacingLineCalculator>();
-            if (calculator != null && generator != null)
-            {
-                List<RacingLinePoint> optimalPath = calculator.CalculateOptimalLine(filteredPoints, generator.trackWidth);
-
-                calculator.DrawOptimalLine(optimalPath);
-            }
-
-            MinimapSetup minimap = FindObjectOfType<MinimapSetup>();
-            if (minimap != null)
-            {
-                minimap.ConfigureMinimap(filteredPoints);
-            }
-
-            DriveManager dm = FindObjectOfType<DriveManager>();
-            if (dm != null)
-            {
-                dm.ShowButton(filteredPoints);
-            }
-            if (minimapCamera != null)
-            {
-                minimapCamera.ConfigureMinimap(filteredPoints);
-            }
-            else
-            {
-                Debug.LogError("Nie przypisałeś MinimapCamera do skryptu InputController w Inspectorze!");
-            }
+            Debug.Log("Szkic wprowadzony. Oczekuję na uruchomienie EXECUTE_APEXGEN.");
         }
     }
 
@@ -137,30 +104,23 @@ public class InputController : MonoBehaviour
     private void ApplyMovingAverage()
     {
         if (rawPoints.Count == 0) return;
-
         List<Vector2> currentPoints = new List<Vector2>(rawPoints);
-
         for (int pass = 0; pass < smoothingPasses; pass++)
         {
             filteredPoints.Clear();
-
             for (int i = 0; i < currentPoints.Count; i++)
             {
                 Vector2 sum = Vector2.zero;
                 int count = 0;
-
                 for (int j = -filterWindowSize; j <= filterWindowSize; j++)
                 {
                     int neighborIndex = (i + j) % currentPoints.Count;
                     if (neighborIndex < 0) neighborIndex += currentPoints.Count;
-
                     sum += currentPoints[neighborIndex];
                     count++;
                 }
-
                 filteredPoints.Add(sum / count);
             }
-
             currentPoints = new List<Vector2>(filteredPoints);
         }
     }
@@ -174,9 +134,58 @@ public class InputController : MonoBehaviour
         }
     }
 
-    public List<Vector2> GetProcessedPath()
+    private bool IsPointerOverDrawingArea()
     {
-        return filteredPoints;
+        if (EventSystem.current == null) return false;
+        PointerEventData eventData = new PointerEventData(EventSystem.current);
+        eventData.position = Input.mousePosition;
+        List<RaycastResult> results = new List<RaycastResult>();
+        EventSystem.current.RaycastAll(eventData, results);
+        foreach (RaycastResult result in results)
+        {
+            if (result.gameObject.name == "DrawingPanel") return true;
+        }
+        return false;
+    }
+
+    public void ToggleDrawingMode()
+    {
+        if (isTrackDrawn) return;
+        isDrawingModeActive = !isDrawingModeActive;
+        if (modeButtonText != null)
+        {
+            modeButtonText.text = isDrawingModeActive ? "[ MODE: DRAWING_ON ]" : "[ MODE: DRAWING_OFF ]";
+            modeButtonText.color = isDrawingModeActive ? new Color(0f, 1f, 0f) : new Color(0.4f, 0.4f, 0.4f);
+        }
+    }
+
+    public void GenerateTrackFromUI()
+    {
+        if (filteredPoints.Count < 2 || isTrackDrawn) return;
+
+        isTrackDrawn = true;
+        
+        TrackGenerator generator = GetComponent<TrackGenerator>();
+        if (generator != null) generator.BuildTrackBoundaries(filteredPoints);
+
+        RacingLineCalculator calculator = GetComponent<RacingLineCalculator>();
+        if (calculator != null && generator != null)
+        {
+            var optimalPath = calculator.CalculateOptimalLine(filteredPoints, generator.trackWidth);
+            calculator.DrawOptimalLine(optimalPath);
+        }
+
+        MinimapSetup minimap = Object.FindAnyObjectByType<MinimapSetup>();
+        if (minimap != null) minimap.ConfigureMinimap(filteredPoints);
+
+        if (minimapCamera != null) minimapCamera.ConfigureMinimap(filteredPoints);
+
+        DriveManager dm = Object.FindAnyObjectByType<DriveManager>();
+        if (dm != null)
+        {
+            dm.ShowButton(filteredPoints);
+            dm.StartDriving(); 
+        }
     }
 
     public void ClearData()
@@ -184,6 +193,29 @@ public class InputController : MonoBehaviour
         rawPoints.Clear();
         filteredPoints.Clear();
         lineRenderer.positionCount = 0;
+        lineRenderer.loop = false;
         isTrackDrawn = false;
+        
+        isDrawingModeActive = true;
+        if (modeButtonText != null)
+        {
+            modeButtonText.text = "[ MODE: DRAWING_ON ]";
+            modeButtonText.color = new Color(0f, 1f, 0f);
+        }
+
+        // Zabezpieczenie przed resetowaniem kamery jeśli jest przypięta do Canvasu
+        if (Camera.main != null && Camera.main.transform.parent != null && Camera.main.transform.parent.name != "Canvas")
+        {
+            Camera.main.transform.SetParent(null);
+            Camera.main.transform.position = new Vector3(0, 50, 0);
+            Camera.main.transform.rotation = Quaternion.Euler(90, 0, 0);
+            Camera.main.orthographic = true;
+        }
+
+        GameObject trackCollider = GameObject.Find("WidocznyTor3D");
+        if (trackCollider != null) Destroy(trackCollider);
+
+        GameObject car = GameObject.FindGameObjectWithTag("Player");
+        if (car != null) Destroy(car);
     }
 }

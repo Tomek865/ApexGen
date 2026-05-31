@@ -24,7 +24,7 @@ public class DriveManager : MonoBehaviour
 
     void Start()
     {
-        if (startButton != null) startButton.SetActive(false);
+       // if (startButton != null) startButton.SetActive(false);
 
         if (timerText != null)
         {
@@ -84,7 +84,7 @@ public class DriveManager : MonoBehaviour
     public void StartDriving()
     {
 
-        if (startButton != null) startButton.SetActive(false);
+      //  if (startButton != null) startButton.SetActive(false);
 
         LineRenderer drawingLine = GetComponent<LineRenderer>();
         if (drawingLine != null) drawingLine.enabled = false;

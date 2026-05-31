@@ -23,7 +23,7 @@ public class FinishLineTrigger : MonoBehaviour
             {
                 if (Time.time > lastLapTime + minimumLapTime)
                 {
-                    DriveManager dm = FindObjectOfType<DriveManager>();
+                    DriveManager dm = Object.FindAnyObjectByType<DriveManager>();
                     if (dm != null)
                     {
                         dm.LapCompleted();
