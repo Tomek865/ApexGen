@@ -6,60 +6,83 @@ public class TrackGenerator : MonoBehaviour
     [Header("Ustawienia Fizyki Toru")]
     public float trackWidth = 8f;
     public float wallHeight = 3f;
-    public float overlap = 1.5f;
+    public float wallThickness = 1.5f;
 
-    private GameObject trackColliders;
+    private GameObject trackContainer;
 
     public void BuildTrackBoundaries(List<Vector2> points)
     {
-        if (points.Count < 2) return;
-        if (trackColliders != null) Destroy(trackColliders);
+        if (points == null || points.Count < 3) return;
 
-        trackColliders = new GameObject("WidocznyTor3D");
+        if (trackContainer != null) Destroy(trackContainer);
+        trackContainer = new GameObject("CiaglyTor3D");
 
-        for (int i = 0; i < points.Count; i++)
+        int count = points.Count;
+
+        Vector3[] floorVerts = new Vector3[count * 2];
+        Vector3[] leftWallVerts = new Vector3[count * 4];
+        Vector3[] rightWallVerts = new Vector3[count * 4];
+
+        int[] floorTris = new int[count * 6];
+        int[] leftWallTris = new int[count * 18];
+        int[] rightWallTris = new int[count * 18];
+
+        for (int i = 0; i < count; i++)
         {
-            Vector2 current = points[i];
-            Vector2 next = points[(i + 1) % points.Count];
+            Vector2 prev = points[(i - 1 + count) % count];
+            Vector2 next = points[(i + 1) % count];
 
-            Vector3 p1 = new Vector3(current.x, 0, current.y);
-            Vector3 p2 = new Vector3(next.x, 0, next.y);
+            Vector2 forward = (next - prev).normalized;
+            Vector2 right = new Vector2(forward.y, -forward.x);
 
-            Vector3 center = (p1 + p2) / 2f;
-            float distance = Vector3.Distance(p1, p2) + overlap;
+            Vector3 center = new Vector3(points[i].x, 0, points[i].y);
+            Vector3 rightVec = new Vector3(right.x, 0, right.y);
 
-            Vector3 direction = (p2 - p1).normalized;
-            Quaternion rotation = Quaternion.LookRotation(direction);
+            Vector3 floorLeft = center - rightVec * (trackWidth / 2f);
+            Vector3 floorRight = center + rightVec * (trackWidth / 2f);
+            floorVerts[i * 2] = floorLeft;
+            floorVerts[i * 2 + 1] = floorRight;
 
-            GameObject floor = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            floor.name = "Podloga_" + i;
-            floor.transform.SetParent(trackColliders.transform);
-            floor.transform.position = center + new Vector3(0, -0.25f, 0);
-            floor.transform.rotation = rotation;
-            floor.transform.localScale = new Vector3(trackWidth, 0.5f, distance);
+            leftWallVerts[i * 4] = floorLeft;
+            leftWallVerts[i * 4 + 1] = floorLeft + Vector3.up * wallHeight;
+            leftWallVerts[i * 4 + 2] = leftWallVerts[i * 4 + 1] - rightVec * wallThickness;
+            leftWallVerts[i * 4 + 3] = leftWallVerts[i * 4] - rightVec * wallThickness;
 
-            GameObject leftWall = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            leftWall.name = "LewaSciana_" + i;
-            leftWall.transform.SetParent(trackColliders.transform);
-            leftWall.transform.position =
-                center +
-                (rotation * Vector3.left * (trackWidth / 2f)) +
-                new Vector3(0, wallHeight / 2f, 0);
-
-            leftWall.transform.rotation = rotation;
-            leftWall.transform.localScale = new Vector3(1f, wallHeight, distance);
-
-            GameObject rightWall = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            rightWall.name = "PrawaSciana_" + i;
-            rightWall.transform.SetParent(trackColliders.transform);
-            rightWall.transform.position =
-                center +
-                (rotation * Vector3.right * (trackWidth / 2f)) +
-                new Vector3(0, wallHeight / 2f, 0);
-
-            rightWall.transform.rotation = rotation;
-            rightWall.transform.localScale = new Vector3(1f, wallHeight, distance);
+            rightWallVerts[i * 4] = floorRight;
+            rightWallVerts[i * 4 + 1] = floorRight + Vector3.up * wallHeight;
+            rightWallVerts[i * 4 + 2] = rightWallVerts[i * 4 + 1] + rightVec * wallThickness;
+            rightWallVerts[i * 4 + 3] = rightWallVerts[i * 4] + rightVec * wallThickness;
         }
+
+        for (int i = 0; i < count; i++)
+        {
+            int next_i = (i + 1) % count;
+
+            int f_curr = i * 2;
+            int f_next = next_i * 2;
+            AddQuad(floorTris, i * 6, f_curr, f_curr + 1, f_next, f_next + 1);
+
+            int wl_curr = i * 4;
+            int wl_next = next_i * 4;
+            int wr_curr = i * 4;
+            int wr_next = next_i * 4;
+            int wt = i * 18;
+
+            AddQuad(leftWallTris, wt, wl_curr, wl_next, wl_curr + 1, wl_next + 1);
+            AddQuad(leftWallTris, wt + 6, wl_curr + 1, wl_next + 1, wl_curr + 2, wl_next + 2);
+            AddQuad(leftWallTris, wt + 12, wl_next + 3, wl_curr + 3, wl_next + 2, wl_curr + 2);
+
+            AddQuad(rightWallTris, wt, wr_next, wr_curr, wr_next + 1, wr_curr + 1);
+            AddQuad(rightWallTris, wt + 6, wr_next + 1, wr_curr + 1, wr_next + 2, wr_curr + 2);
+            AddQuad(rightWallTris, wt + 12, wr_curr + 3, wr_next + 3, wr_curr + 2, wr_next + 2);
+        }
+
+        Color asphaltColor = new Color(0.3f, 0.3f, 0.3f, 1f);
+        Color wallColor = new Color(0.7f, 0.7f, 0.7f, 1f);
+
+        CreateMeshObject("Podloga", floorVerts, floorTris, asphaltColor, trackContainer.transform);
+        CreateMeshObject("LewaSciana", leftWallVerts, leftWallTris, wallColor, trackContainer.transform);
+        CreateMeshObject("PrawaSciana", rightWallVerts, rightWallTris, wallColor, trackContainer.transform);
 
         Vector2 lastPoint = points[points.Count - 1];
         Vector2 prevToLast = points[points.Count - 2];
@@ -68,7 +91,7 @@ public class TrackGenerator : MonoBehaviour
 
         GameObject finishLine = GameObject.CreatePrimitive(PrimitiveType.Cube);
         finishLine.name = "LiniaMety";
-        finishLine.transform.SetParent(trackColliders.transform);
+        finishLine.transform.SetParent(trackContainer.transform);
         finishLine.transform.position = metaCenter;
         finishLine.transform.rotation = Quaternion.LookRotation(metaDir);
         finishLine.transform.localScale = new Vector3(trackWidth, 4f, 1f);
@@ -76,5 +99,49 @@ public class TrackGenerator : MonoBehaviour
         finishLine.GetComponent<MeshRenderer>().enabled = false;
         finishLine.GetComponent<BoxCollider>().isTrigger = true;
         finishLine.AddComponent<FinishLineTrigger>();
+    }
+
+    private void AddQuad(int[] tris, int startIndex, int bl, int br, int tl, int tr)
+    {
+        tris[startIndex] = bl;
+        tris[startIndex + 1] = tl;
+        tris[startIndex + 2] = tr;
+
+        tris[startIndex + 3] = bl;
+        tris[startIndex + 4] = tr;
+        tris[startIndex + 5] = br;
+    }
+
+    private void CreateMeshObject(string name, Vector3[] verts, int[] tris, Color color, Transform parent)
+    {
+        GameObject obj = new GameObject(name);
+        obj.transform.SetParent(parent);
+
+        Mesh mesh = new Mesh();
+        mesh.vertices = verts;
+        mesh.triangles = tris;
+        mesh.RecalculateNormals();
+
+        MeshFilter filter = obj.AddComponent<MeshFilter>();
+        filter.mesh = mesh;
+
+        MeshRenderer renderer = obj.AddComponent<MeshRenderer>();
+
+        Shader urpShader = Shader.Find("Universal Render Pipeline/Lit");
+        if (urpShader != null)
+        {
+            renderer.material = new Material(urpShader);
+            renderer.material.SetFloat("_Smoothness", 0.05f);
+            renderer.material.SetFloat("_Cull", 0);
+        }
+        else
+        {
+            renderer.material = new Material(Shader.Find("Standard"));
+        }
+
+        renderer.material.color = color;
+
+        MeshCollider collider = obj.AddComponent<MeshCollider>();
+        collider.sharedMesh = mesh;
     }
 }
