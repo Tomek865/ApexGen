@@ -27,33 +27,96 @@ public class TrackGenerator : MonoBehaviour
         int[] leftWallTris = new int[count * 18];
         int[] rightWallTris = new int[count * 18];
 
+        Vector3[] leftEdges = new Vector3[count];
+        Vector3[] rightEdges = new Vector3[count];
+        Vector3[] centers = new Vector3[count];
+
+        // ETAP 1: Środek toru i wyliczenie surowych krawędzi
         for (int i = 0; i < count; i++)
         {
             Vector2 prev = points[(i - 1 + count) % count];
+            Vector2 curr = points[i];
             Vector2 next = points[(i + 1) % count];
 
-            Vector2 forward = (next - prev).normalized;
-            Vector2 right = new Vector2(forward.y, -forward.x);
+            Vector2 dirIn = (curr - prev).normalized;
+            Vector2 dirOut = (next - curr).normalized;
 
-            Vector3 center = new Vector3(points[i].x, 0, points[i].y);
-            Vector3 rightVec = new Vector3(right.x, 0, right.y);
+            Vector2 tangent = (dirIn + dirOut).normalized;
+            Vector2 normal = new Vector2(tangent.y, -tangent.x);
 
-            Vector3 floorLeft = center - rightVec * (trackWidth / 2f);
-            Vector3 floorRight = center + rightVec * (trackWidth / 2f);
-            floorVerts[i * 2] = floorLeft;
-            floorVerts[i * 2 + 1] = floorRight;
+            centers[i] = new Vector3(curr.x, 0, curr.y);
+            Vector3 offset = new Vector3(normal.x, 0, normal.y) * (trackWidth / 2f);
 
-            leftWallVerts[i * 4] = floorLeft;
-            leftWallVerts[i * 4 + 1] = floorLeft + Vector3.up * wallHeight;
-            leftWallVerts[i * 4 + 2] = leftWallVerts[i * 4 + 1] - rightVec * wallThickness;
-            leftWallVerts[i * 4 + 3] = leftWallVerts[i * 4] - rightVec * wallThickness;
-
-            rightWallVerts[i * 4] = floorRight;
-            rightWallVerts[i * 4 + 1] = floorRight + Vector3.up * wallHeight;
-            rightWallVerts[i * 4 + 2] = rightWallVerts[i * 4 + 1] + rightVec * wallThickness;
-            rightWallVerts[i * 4 + 3] = rightWallVerts[i * 4] + rightVec * wallThickness;
+            leftEdges[i] = centers[i] - offset;
+            rightEdges[i] = centers[i] + offset;
         }
 
+        // ETAP 2: ALGORYTM ANTI-BOWTIE (Niszczyciel Pętli)
+        // Brutalne wymuszenie progresji: krawędź nie może się cofać względem toru jazdy.
+        float minForwardStep = 0.1f;
+        for (int pass = 0; pass < 5; pass++)
+        {
+            for (int i = 0; i < count; i++)
+            {
+                int prev = (i - 1 + count) % count;
+                Vector3 trackDir = (centers[i] - centers[prev]).normalized;
+
+                // Lewa krawędź - jeśli zawraca, ciągniemy punkt na siłę do przodu
+                Vector3 lVector = leftEdges[i] - leftEdges[prev];
+                if (Vector3.Dot(lVector, trackDir) < minForwardStep)
+                {
+                    leftEdges[i] = leftEdges[prev] + trackDir * minForwardStep;
+                }
+
+                // Prawa krawędź - analogicznie
+                Vector3 rVector = rightEdges[i] - rightEdges[prev];
+                if (Vector3.Dot(rVector, trackDir) < minForwardStep)
+                {
+                    rightEdges[i] = rightEdges[prev] + trackDir * minForwardStep;
+                }
+            }
+        }
+
+        // ETAP 3: Relaksacja (miękkie wygładzenie naprawionych wierzchołków)
+        for (int pass = 0; pass < 5; pass++)
+        {
+            Vector3[] tempLeft = new Vector3[count];
+            Vector3[] tempRight = new Vector3[count];
+            for (int i = 0; i < count; i++)
+            {
+                int prev = (i - 1 + count) % count;
+                int next = (i + 1) % count;
+
+                // Wagi 1-2-1 dla ładnego, organicznego zaokrąglenia na wirażach
+                tempLeft[i] = (leftEdges[prev] + leftEdges[i] * 2f + leftEdges[next]) / 4f;
+                tempRight[i] = (rightEdges[prev] + rightEdges[i] * 2f + rightEdges[next]) / 4f;
+            }
+            leftEdges = tempLeft;
+            rightEdges = tempRight;
+        }
+
+        // ETAP 4: Budowa ścian na bezpiecznych i wygładzonych krawędziach
+        for (int i = 0; i < count; i++)
+        {
+            floorVerts[i * 2] = leftEdges[i];
+            floorVerts[i * 2 + 1] = rightEdges[i];
+
+            // Grubość ściany liczymy na bieżąco z CZYSTYCH krawędzi
+            Vector3 outLeft = (leftEdges[i] - rightEdges[i]).normalized;
+            Vector3 outRight = (rightEdges[i] - leftEdges[i]).normalized;
+
+            leftWallVerts[i * 4] = leftEdges[i];
+            leftWallVerts[i * 4 + 1] = leftEdges[i] + Vector3.up * wallHeight;
+            leftWallVerts[i * 4 + 2] = leftWallVerts[i * 4 + 1] + outLeft * wallThickness;
+            leftWallVerts[i * 4 + 3] = leftWallVerts[i * 4] + outLeft * wallThickness;
+
+            rightWallVerts[i * 4] = rightEdges[i];
+            rightWallVerts[i * 4 + 1] = rightEdges[i] + Vector3.up * wallHeight;
+            rightWallVerts[i * 4 + 2] = rightWallVerts[i * 4 + 1] + outRight * wallThickness;
+            rightWallVerts[i * 4 + 3] = rightWallVerts[i * 4] + outRight * wallThickness;
+        }
+
+        // ETAP 5: Mapowanie trójkątów
         for (int i = 0; i < count; i++)
         {
             int next_i = (i + 1) % count;
@@ -84,6 +147,7 @@ public class TrackGenerator : MonoBehaviour
         CreateMeshObject("LewaSciana", leftWallVerts, leftWallTris, wallColor, trackContainer.transform);
         CreateMeshObject("PrawaSciana", rightWallVerts, rightWallTris, wallColor, trackContainer.transform);
 
+        // Meta
         Vector2 lastPoint = points[points.Count - 1];
         Vector2 prevToLast = points[points.Count - 2];
         Vector3 metaCenter = new Vector3(lastPoint.x, 1f, lastPoint.y);

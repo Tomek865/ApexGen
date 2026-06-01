@@ -9,7 +9,7 @@ public class InputController : MonoBehaviour
     private List<Vector2> rawPoints = new List<Vector2>();
     private List<Vector2> filteredPoints = new List<Vector2>();
 
-    [Header("Ustawienia Filtra")]
+    [Header("Ustawienia Filtra Wygladzajacego")]
     public int filterWindowSize = 3;
     public int smoothingPasses = 2;
     public float minPointDistance = 0.5f;
@@ -21,6 +21,13 @@ public class InputController : MonoBehaviour
     [Header("UI References")]
     public TextMeshProUGUI modeButtonText;
     private bool isDrawingModeActive = false;
+
+    // NOWA SEKCJA KONFIGURACYJNA:
+    [Header("Walidacja Ostrosci Zakretów (Skumulowana)")]
+    [Tooltip("Maksymalna dopuszczalna sumaryczna zmiana kąta w oknie punktów. Zalecane: 150-170.")]
+    public float maxCumulativeAngle = 160f; 
+    [Tooltip("Wielkość okna punktów do sprawdzania skumulowanego kąta.")]
+    public int angleCheckWindow = 16; // Sprawdza sumę zmian kierunku na 8 punktach z rzędu.
 
     void Start()
     {
@@ -189,20 +196,28 @@ public class InputController : MonoBehaviour
         float safeDistance = (generator != null) ? generator.trackWidth + 1.5f : 9.5f;
         bool hasIntersections = IsTrackIntersecting(filteredPoints);
         bool isTooClose = IsTrackTooClose(filteredPoints, safeDistance);
-        bool hasSharpTurns = HasSharpTurns(filteredPoints, 35f);
+        
+        // Modyfikacja: Limit kąta punkt-po-punkcie jest mniej ważny po wygładzeniu.
+        // Zostawiamy go na 35 stopni, aby nie blokować zbyt wielu poprawnych torów.
+        bool hasSharpTurns = HasSharpTurns(filteredPoints, 35f); 
 
-        if (hasIntersections || isTooClose || hasSharpTurns)
+        // NOWE SPRAWDZENIE: Wykrywa spirale i zbyt gwałtowne zmiany kierunku na małym obszarze.
+        bool hasCumulativeSharpTurns = HasCumulativeSharpTurns(filteredPoints, maxCumulativeAngle, angleCheckWindow);
+
+        if (hasIntersections || isTooClose || hasSharpTurns || hasCumulativeSharpTurns)
         {
-            Debug.LogWarning("Wykryto błędną geometrię toru! Generowanie zablokowane.");
+            Debug.LogWarning("Wykryto bledna geometrie toru! Generowanie zablokowane.");
 
             if (modeButtonText != null)
             {
                 if (hasIntersections)
-                    modeButtonText.text = "[ BŁĄD: TOR SIĘ PRZECINA! ]";
+                    modeButtonText.text = "[ BLAD: TOR SIE PRZECINA! ]";
+                else if (hasCumulativeSharpTurns)
+                    modeButtonText.text = "[ BLAD: ZBYT OSTRE ZAKRETY (skumulowane)! ]"; // Nowy komunikat błędu
                 else if (hasSharpTurns)
-                    modeButtonText.text = "[ BŁĄD: ZBYT OSTRY ZAKRĘT! ]";
+                    modeButtonText.text = "[ BLAD: ZBYT OSTRY ZAKRET (w punkcie)! ]";
                 else
-                    modeButtonText.text = "[ BŁĄD: TRASY ZBYT BLISKO SIEBIE! ]";
+                    modeButtonText.text = "[ BLAD: TRASY ZBYT BLISKO SIEBIE! ]";
 
                 modeButtonText.color = Color.red;
             }
@@ -211,6 +226,9 @@ public class InputController : MonoBehaviour
             filteredPoints.Clear();
             lineRenderer.positionCount = 0;
             lineRenderer.loop = false;
+
+            // Odblokowujemy możliwość ponownego narysowania, skoro generowanie się nie udało.
+            isTrackDrawn = false; 
 
             return;
         }
@@ -321,6 +339,41 @@ public class InputController : MonoBehaviour
 
             if (angle > maxAngle)
             {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // NOWA METODA WALIDACJI:
+    private bool HasCumulativeSharpTurns(List<Vector2> points, float maxCumulativeAngleLimit, int windowSize)
+    {
+        if (points == null || points.Count < windowSize + 1) return false;
+
+        // Przesuwamy okno przez całą trasę.
+        for (int i = 0; i < points.Count; i++)
+        {
+            float windowAngleTotal = 0f;
+            
+            // Wewnątrz okna sumujemy zmiany kątów.
+            for (int j = 0; j < windowSize - 1; j++)
+            {
+                int currIdx = (i + j) % points.Count;
+                int nextIdx = (i + j + 1) % points.Count;
+                int nextNextIdx = (i + j + 2) % points.Count;
+
+                Vector2 v1 = (points[nextIdx] - points[currIdx]).normalized;
+                Vector2 v2 = (points[nextNextIdx] - points[nextIdx]).normalized;
+
+                // Używamy Vector2.Angle, aby uzyskać bezwzględną zmianę kierunku (0-180).
+                float angleChange = Vector2.Angle(v1, v2);
+                windowAngleTotal += angleChange;
+            }
+
+            // Jeśli suma zmian w oknie przekracza limit, tor jest zbyt ostry.
+            if (windowAngleTotal > maxCumulativeAngleLimit)
+            {
+                Debug.Log($"Skumulowany kat na punkcie {i} wynosi {windowAngleTotal}. Limit: {maxCumulativeAngleLimit}.");
                 return true;
             }
         }
