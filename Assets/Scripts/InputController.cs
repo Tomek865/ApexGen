@@ -35,10 +35,7 @@ public class InputController : MonoBehaviour
         lineRenderer.startColor = Color.green;
         lineRenderer.endColor = Color.green;
         lineRenderer.loop = false;
-<<<<<<< HEAD
-=======
 
->>>>>>> c9ab4329d9bc9f62a32a13cf525dc8739bac2996
         if (modeButtonText != null)
         {
             modeButtonText.text = "[ MODE: POINTER ]";
@@ -78,10 +75,7 @@ public class InputController : MonoBehaviour
             float depth = Mathf.Abs(Camera.main.transform.position.y);
             Vector3 mouseScreenPos = new Vector3(Input.mousePosition.x, Input.mousePosition.y, depth);
             Vector3 mousePos = Camera.main.ScreenToWorldPoint(mouseScreenPos);
-<<<<<<< HEAD
-=======
 
->>>>>>> c9ab4329d9bc9f62a32a13cf525dc8739bac2996
             Vector2 currentPoint = new Vector2(mousePos.x, mousePos.z);
 
             if (rawPoints.Count == 0 || Vector2.Distance(rawPoints[rawPoints.Count - 1], currentPoint) > minPointDistance)
@@ -190,17 +184,12 @@ public class InputController : MonoBehaviour
     {
         if (filteredPoints.Count < 2 || isTrackDrawn) return;
 
-<<<<<<< HEAD
         isTrackDrawn = true;
-=======
->>>>>>> c9ab4329d9bc9f62a32a13cf525dc8739bac2996
         TrackGenerator generator = GetComponent<TrackGenerator>();
         float safeDistance = (generator != null) ? generator.trackWidth + 1.5f : 9.5f;
-
-        // --- POTRÓJNY SKANER BEZPIECZEŃSTWA (ZERA LITOŚCI DLA ARTEFAKTÓW) ---
         bool hasIntersections = IsTrackIntersecting(filteredPoints);
         bool isTooClose = IsTrackTooClose(filteredPoints, safeDistance);
-        bool hasSharpTurns = HasSharpTurns(filteredPoints, 35f); // 35 stopni twardego limitu łamania geometrii
+        bool hasSharpTurns = HasSharpTurns(filteredPoints, 35f);
 
         if (hasIntersections || isTooClose || hasSharpTurns)
         {
@@ -223,7 +212,7 @@ public class InputController : MonoBehaviour
             lineRenderer.positionCount = 0;
             lineRenderer.loop = false;
 
-            return; // Odrzucamy trasę!
+            return;
         }
 
         isTrackDrawn = true;
@@ -247,7 +236,7 @@ public class InputController : MonoBehaviour
         if (dm != null)
         {
             dm.ShowButton(filteredPoints);
-<<<<<<< HEAD
+
             if (optimalPath != null)
             {
                 dm.ReceiveOptimalLine(optimalPath);
@@ -257,11 +246,6 @@ public class InputController : MonoBehaviour
         lineRenderer.enabled = false;
         CarPanelTerminal terminal = GetComponent<CarPanelTerminal>();
         if (terminal != null) terminal.BootUpPanel();
-=======
-            dm.StartDriving();
-        }
-        lineRenderer.enabled = false;
->>>>>>> c9ab4329d9bc9f62a32a13cf525dc8739bac2996
     }
 
     public void ClearData()
@@ -273,10 +257,6 @@ public class InputController : MonoBehaviour
         lineRenderer.enabled = true;
         isTrackDrawn = false;
 
-<<<<<<< HEAD
-        // 2. Blokada trybu rysowania
-=======
->>>>>>> c9ab4329d9bc9f62a32a13cf525dc8739bac2996
         isDrawingModeActive = false;
         if (modeButtonText != null)
         {
@@ -293,17 +273,6 @@ public class InputController : MonoBehaviour
             Camera.main.orthographicSize = 80f;
         }
 
-<<<<<<< HEAD
-        // 4. USUNIĘCIE WSZYSTKICH WYGENEROWANYCH OBIEKTÓW TORU I LINII
-        // UWAGA: Wpisz tutaj WSZYSTKIE nazwy obiektów, które pojawiają się w Hierarchy po wygenerowaniu toru!
-        string[] objectsToDestroy = new string[]
-        {
-            "WidocznyTor3D",
-            "TrackMesh",           // <-- Zmień na właściwą nazwę asfaltu, jeśli jest inna
-            "TrackBoundaries",     // <-- Zmień na nazwę białych krawędzi
-            "OptimalRacingLine",   // <-- Zmień na nazwę linii optymalnej
-            "Track(Clone)"         // Czasami Unity dodaje (Clone) do spawnowanych prefabów
-=======
         string[] objectsToDestroy = new string[]
         {
             "CiaglyTor3D",
@@ -312,7 +281,6 @@ public class InputController : MonoBehaviour
             "PrawaSciana",
             "OptimalRacingLine",
             "CzerwonaLiniaWyscigowa"
->>>>>>> c9ab4329d9bc9f62a32a13cf525dc8739bac2996
         };
 
         foreach (string objName in objectsToDestroy)
@@ -329,23 +297,18 @@ public class InputController : MonoBehaviour
         {
             dm.ResetDriveManager();
         }
-<<<<<<< HEAD
 
         CarPanelTerminal terminal = GetComponent<CarPanelTerminal>();
         if (terminal != null) terminal.ResetPanel();
         // 7. Reset Minimapy (jeśli rysuje własną linię)
         MinimapSetup minimap = Object.FindAnyObjectByType<MinimapSetup>();
-        if (minimap != null)
-=======
+        if (minimap != null);
     }
-
-    // --- 1. SKANER OSTREGO ZAŁAMANIA KĄTÓW (Blokuje odwracające się ściany) ---
     private bool HasSharpTurns(List<Vector2> points, float maxAngle)
     {
         if (points == null || points.Count < 3) return false;
 
         for (int i = 0; i < points.Count; i++)
->>>>>>> c9ab4329d9bc9f62a32a13cf525dc8739bac2996
         {
             Vector2 prev = points[(i - 1 + points.Count) % points.Count];
             Vector2 curr = points[i];
@@ -364,7 +327,6 @@ public class InputController : MonoBehaviour
         return false;
     }
 
-    // --- 2. SKANER ZBYT BLISKICH TRAS ---
     private bool IsTrackTooClose(List<Vector2> points, float minSafeDistance)
     {
         if (points == null || points.Count < 10) return false;
@@ -388,7 +350,6 @@ public class InputController : MonoBehaviour
         return false;
     }
 
-    // --- 3. MATEMATYKA WYKRYWANIA SKRZYŻOWAŃ ---
     private bool IsTrackIntersecting(List<Vector2> points)
     {
         if (points == null || points.Count < 4) return false;

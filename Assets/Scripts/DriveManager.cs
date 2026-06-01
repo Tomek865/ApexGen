@@ -10,14 +10,9 @@ public class DriveManager : MonoBehaviour
     public TextMeshProUGUI timerText;
     public TextMeshProUGUI bestLapText;
 
-<<<<<<< HEAD
     [Header("Telemetria (Konfiguracja w kodzie)")]
     public float maxDotRange = 50f;
     [Header("Pojazd")]
-=======
-    [Header("Telemetria")]
-    public float maxDotRange = 50f;
->>>>>>> c9ab4329d9bc9f62a32a13cf525dc8739bac2996
     public GameObject carPrefab;
 
 
@@ -36,32 +31,11 @@ public class DriveManager : MonoBehaviour
 
     private Rigidbody carRb;
     private PrometeoCarController carController;
-
-<<<<<<< HEAD
-    // Prywatne referencje interfejsu UI
-=======
->>>>>>> c9ab4329d9bc9f62a32a13cf525dc8739bac2996
     private RectTransform gForceDot;
     private TextMeshProUGUI tractionLossText;
     private TextMeshProUGUI speedText;
     private TextMeshProUGUI rpmText;
 
-<<<<<<< HEAD
-    // Płynność wskazówki obrotomierza
-    private float currentRPM = 800f;
-    void Start()
-    {
-        // 1. AUTOMATYCZNE WYSZUKIWANIE ELEMENTÓW HUD
-
-        GameObject foundGForce = GameObject.Find("GForce_Dot");
-        if (foundGForce != null) gForceDot = foundGForce.GetComponent<RectTransform>();
-
-        GameObject foundTractionText = GameObject.Find("TractionLossText");
-        if (foundTractionText != null)
-        {
-            tractionLossText = foundTractionText.GetComponent<TextMeshProUGUI>();
-            foundTractionText.SetActive(false);
-=======
     private float currentRPM = 800f;
 
     void Start()
@@ -74,18 +48,13 @@ public class DriveManager : MonoBehaviour
         {
             tractionLossText = foundTractionText.GetComponent<TextMeshProUGUI>();
             tractionLossText.gameObject.SetActive(false);
->>>>>>> c9ab4329d9bc9f62a32a13cf525dc8739bac2996
         }
 
         GameObject foundSpeedText = GameObject.Find("SpeedText");
         if (foundSpeedText != null)
         {
             speedText = foundSpeedText.GetComponent<TextMeshProUGUI>();
-<<<<<<< HEAD
-            speedText.text = "Speed : 000 km/h";
-=======
             speedText.text = "000 km/h";
->>>>>>> c9ab4329d9bc9f62a32a13cf525dc8739bac2996
             speedText.gameObject.SetActive(false);
         }
 
@@ -93,29 +62,20 @@ public class DriveManager : MonoBehaviour
         if (foundRPMText != null)
         {
             rpmText = foundRPMText.GetComponent<TextMeshProUGUI>();
-<<<<<<< HEAD
-            rpmText.text = "RPM   : [..........] 0800";
-            rpmText.gameObject.SetActive(false); // Ukrywamy przy szkicowaniu
-            Debug.Log("Telemetria: Znaleziono RPMText!");
-=======
             rpmText.text = "[..........] 0800";
             rpmText.gameObject.SetActive(false);
->>>>>>> c9ab4329d9bc9f62a32a13cf525dc8739bac2996
         }
 
         if (timerText != null)
         {
             timerText.text = "00:00.00";
             timerText.gameObject.SetActive(false);
-<<<<<<< HEAD
-=======
         }
 
         if (bestLapText != null)
         {
             bestLapText.text = "BEST: --:--.--";
             bestLapText.gameObject.SetActive(false);
->>>>>>> c9ab4329d9bc9f62a32a13cf525dc8739bac2996
         }
     }
 
@@ -162,19 +122,10 @@ public class DriveManager : MonoBehaviour
             float inputGas = Mathf.Abs(Input.GetAxis("Vertical"));
             float speedPerGear = 35f;
             float speedInCurrentGear = speed % speedPerGear;
-<<<<<<< HEAD
-
-            // Procent wkręcenia na obroty (od 0.0 do 1.0)
-=======
->>>>>>> c9ab4329d9bc9f62a32a13cf525dc8739bac2996
             float rpmPercent = speedInCurrentGear / speedPerGear;
 
             if (speed < 2f && inputGas > 0.1f)
             {
-<<<<<<< HEAD
-                // Pulsowanie obrotów przy wciśniętym gazie na postoju
-=======
->>>>>>> c9ab4329d9bc9f62a32a13cf525dc8739bac2996
                 rpmPercent = (Mathf.Sin(Time.time * 15f) * 0.1f) + 0.9f;
             }
             else if (speed < 2f && inputGas < 0.1f)
@@ -188,12 +139,8 @@ public class DriveManager : MonoBehaviour
             int totalBars = 15;
             int activeBars = Mathf.Clamp(Mathf.FloorToInt((currentRPM / 6800f) * totalBars), 0, totalBars);
             string barString = new string('|', activeBars) + new string('.', totalBars - activeBars);
-<<<<<<< HEAD
-            rpmText.text = string.Format("RPM   : [{0}] {1:0000}", barString, Mathf.FloorToInt(currentRPM));
-=======
             
             rpmText.text = string.Format("[{0}] {1:0000}", barString, Mathf.FloorToInt(currentRPM));
->>>>>>> c9ab4329d9bc9f62a32a13cf525dc8739bac2996
         }
 
         if (gForceDot != null)
@@ -204,10 +151,6 @@ public class DriveManager : MonoBehaviour
 
             float targetX = inputX * maxDotRange * speedFactor;
             float targetY = inputZ * maxDotRange * (speedFactor + 0.2f);
-<<<<<<< HEAD
-=======
-
->>>>>>> c9ab4329d9bc9f62a32a13cf525dc8739bac2996
             targetX = Mathf.Clamp(targetX, -maxDotRange, maxDotRange);
             targetY = Mathf.Clamp(targetY, -maxDotRange, maxDotRange);
 
@@ -226,11 +169,7 @@ public class DriveManager : MonoBehaviour
         currentTime = 0f;
         currentLap = 0;
         lapTimes.Clear();
-<<<<<<< HEAD
-=======
         bestLapTime = Mathf.Infinity;
-
->>>>>>> c9ab4329d9bc9f62a32a13cf525dc8739bac2996
         if (timerText != null)
         {
             timerText.text = "00:00.00";
@@ -255,8 +194,6 @@ public class DriveManager : MonoBehaviour
             rpmText.gameObject.SetActive(false);
         }
 
-<<<<<<< HEAD
-
         if (spawnedGhostCar != null)
         {
             Destroy(spawnedGhostCar);
@@ -264,12 +201,11 @@ public class DriveManager : MonoBehaviour
         }
 
         optimalLineToFollow = null;
-=======
+
         if (tractionLossText != null)
         {
             tractionLossText.gameObject.SetActive(false);
         }
->>>>>>> c9ab4329d9bc9f62a32a13cf525dc8739bac2996
     }
 
     public void LapCompleted()
@@ -322,10 +258,7 @@ public class DriveManager : MonoBehaviour
 
         currentTime = 0f;
         isTimerRunning = true;
-<<<<<<< HEAD
-=======
 
->>>>>>> c9ab4329d9bc9f62a32a13cf525dc8739bac2996
         if (timerText != null)
         {
             timerText.gameObject.SetActive(true);
@@ -333,8 +266,8 @@ public class DriveManager : MonoBehaviour
         }
 
         if (bestLapText != null) bestLapText.gameObject.SetActive(true);
+
         if (speedText != null) speedText.gameObject.SetActive(true);
-<<<<<<< HEAD
         if (rpmText != null) rpmText.gameObject.SetActive(true); // Aktywacja po starcie
 
 
@@ -349,8 +282,6 @@ public class DriveManager : MonoBehaviour
                 ghostScript.SetPathAndStart(optimalLineToFollow);
             }
         }
-=======
-        if (rpmText != null) rpmText.gameObject.SetActive(true);
     }
 
     private string FormatTime(float timeToFormat)
@@ -359,6 +290,5 @@ public class DriveManager : MonoBehaviour
         int seconds = Mathf.FloorToInt(timeToFormat % 60F);
         int fraction = Mathf.FloorToInt((timeToFormat * 100F) % 100F);
         return string.Format("{0:00}:{1:00}.{2:00}", minutes, seconds, fraction);
->>>>>>> c9ab4329d9bc9f62a32a13cf525dc8739bac2996
     }
 }
