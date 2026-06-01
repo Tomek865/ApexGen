@@ -634,7 +634,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::InputController
   filterWindowSize: 3
   smoothingPasses: 2
-  minPointDistance: 0.5
+  minPointDistance: 0.1
   minimapCamera: {fileID: 1250084690}
 --- !u!4 &579172929
 Transform:
@@ -775,7 +775,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::TrackGenerator
   trackWidth: 15
   wallHeight: 5
-  overlap: 1.5
+  wallThickness: 1.5
 --- !u!114 &579172932
 MonoBehaviour:
   m_ObjectHideFlags: 0
