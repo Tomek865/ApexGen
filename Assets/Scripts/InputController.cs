@@ -35,14 +35,14 @@ public class InputController : MonoBehaviour
         lineRenderer.startColor = Color.green;
         lineRenderer.endColor = Color.green;
         lineRenderer.loop = false;
-		if (modeButtonText != null)
+        if (modeButtonText != null)
         {
             modeButtonText.text = "[ MODE: POINTER ]";
             modeButtonText.color = new Color(0.4f, 0.4f, 0.4f);
         }
     }
 
-        void Update()
+    void Update()
     {
         // Jeśli tor wygenerowany (jazda autem) lub tryb rysowania wyłączony -> nic nie robimy
         if (isTrackDrawn || !isDrawingModeActive) return;
@@ -72,7 +72,6 @@ public class InputController : MonoBehaviour
             float depth = Mathf.Abs(Camera.main.transform.position.y);
             Vector3 mouseScreenPos = new Vector3(Input.mousePosition.x, Input.mousePosition.y, depth);
             Vector3 mousePos = Camera.main.ScreenToWorldPoint(mouseScreenPos);
-            
             Vector2 currentPoint = new Vector2(mousePos.x, mousePos.z);
 
             if (rawPoints.Count == 0 || Vector2.Distance(rawPoints[rawPoints.Count - 1], currentPoint) > minPointDistance)
@@ -185,14 +184,15 @@ public class InputController : MonoBehaviour
         if (filteredPoints.Count < 2 || isTrackDrawn) return;
 
         isTrackDrawn = true;
-        
         TrackGenerator generator = GetComponent<TrackGenerator>();
         if (generator != null) generator.BuildTrackBoundaries(filteredPoints);
+
+        List<RacingLinePoint> optimalPath = null;
 
         RacingLineCalculator calculator = GetComponent<RacingLineCalculator>();
         if (calculator != null && generator != null)
         {
-            var optimalPath = calculator.CalculateOptimalLine(filteredPoints, generator.trackWidth);
+            optimalPath = calculator.CalculateOptimalLine(filteredPoints, generator.trackWidth);
             calculator.DrawOptimalLine(optimalPath);
         }
 
@@ -205,14 +205,18 @@ public class InputController : MonoBehaviour
         if (dm != null)
         {
             dm.ShowButton(filteredPoints);
-            dm.StartDriving(); 
+            if (optimalPath != null)
+            {
+                dm.ReceiveOptimalLine(optimalPath);
+            }
+            dm.StartDriving();
         }
-		lineRenderer.enabled = false;
-		CarPanelTerminal terminal = GetComponent<CarPanelTerminal>();
+        lineRenderer.enabled = false;
+        CarPanelTerminal terminal = GetComponent<CarPanelTerminal>();
         if (terminal != null) terminal.BootUpPanel();
     }
 
-		public void ClearData()
+    public void ClearData()
     {
         // 1. Czyszczenie punktów i przywrócenie zielonej linii szkicu
         rawPoints.Clear();
@@ -221,9 +225,9 @@ public class InputController : MonoBehaviour
         lineRenderer.loop = false;
         lineRenderer.enabled = true;
         isTrackDrawn = false;
-        
+
         // 2. Blokada trybu rysowania
-        isDrawingModeActive = false; 
+        isDrawingModeActive = false;
         if (modeButtonText != null)
         {
             modeButtonText.text = "[ MODE: DRAWING_OFF ]";
@@ -237,14 +241,14 @@ public class InputController : MonoBehaviour
             Camera.main.transform.position = new Vector3(0, 50, 0);
             Camera.main.transform.rotation = Quaternion.Euler(90, 0, 0);
             Camera.main.orthographic = true;
-            Camera.main.orthographicSize = 80f; 
+            Camera.main.orthographicSize = 80f;
         }
 
         // 4. USUNIĘCIE WSZYSTKICH WYGENEROWANYCH OBIEKTÓW TORU I LINII
         // UWAGA: Wpisz tutaj WSZYSTKIE nazwy obiektów, które pojawiają się w Hierarchy po wygenerowaniu toru!
-        string[] objectsToDestroy = new string[] 
-        { 
-            "WidocznyTor3D", 
+        string[] objectsToDestroy = new string[]
+        {
+            "WidocznyTor3D",
             "TrackMesh",           // <-- Zmień na właściwą nazwę asfaltu, jeśli jest inna
             "TrackBoundaries",     // <-- Zmień na nazwę białych krawędzi
             "OptimalRacingLine",   // <-- Zmień na nazwę linii optymalnej
@@ -269,8 +273,8 @@ public class InputController : MonoBehaviour
         {
             dm.ResetDriveManager();
         }
-		
-		CarPanelTerminal terminal = GetComponent<CarPanelTerminal>();
+
+        CarPanelTerminal terminal = GetComponent<CarPanelTerminal>();
         if (terminal != null) terminal.ResetPanel();
         // 7. Reset Minimapy (jeśli rysuje własną linię)
         MinimapSetup minimap = Object.FindAnyObjectByType<MinimapSetup>();

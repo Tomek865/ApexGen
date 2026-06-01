@@ -1,7 +1,10 @@
+using System.Collections.Generic;
+using UnityEngine;
+
 public class GhostCar : MonoBehaviour
 {
     [Header("REFERENCJE")]
-    public PrometeoCarController playerCar; // Przypnij tutaj samochód gracza w edytorze!
+    public PrometeoCarController playerCar;
 
     [Header("PATH FOLLOWING")]
     public float waypointThreshold = 1.5f;

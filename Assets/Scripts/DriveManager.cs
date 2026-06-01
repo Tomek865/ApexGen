@@ -5,15 +5,20 @@ using TMPro;
 public class DriveManager : MonoBehaviour
 {
     [Header("UI i Kamera")]
-    public GameObject startButton; 
+    public GameObject startButton;
     public Camera mainCamera;
     public TextMeshProUGUI timerText;
 
     [Header("Telemetria (Konfiguracja w kodzie)")]
-    public float maxDotRange = 50f; 
-
+    public float maxDotRange = 50f;
     [Header("Pojazd")]
     public GameObject carPrefab;
+
+
+    [Header("Pojazd Ghost Car")]
+    public GameObject ghostCarPrefab;
+    private List<RacingLinePoint> optimalLineToFollow;
+    private GameObject spawnedGhostCar;
 
     private Vector2 startPoint;
     private Vector2 nextPoint;
@@ -28,7 +33,7 @@ public class DriveManager : MonoBehaviour
     // --- ZMIENNE DO TELEMETRII ---
     private Rigidbody carRb;
     private PrometeoCarController carController;
-    
+
     // Prywatne referencje interfejsu UI
     private RectTransform gForceDot;
     private TextMeshProUGUI tractionLossText;
@@ -36,28 +41,27 @@ public class DriveManager : MonoBehaviour
     private TextMeshProUGUI rpmText; // <--- NOWY WSKAŹNIK
 
     // Płynność wskazówki obrotomierza
-    private float currentRPM = 800f; 
-
+    private float currentRPM = 800f;
     void Start()
     {
         // 1. AUTOMATYCZNE WYSZUKIWANIE ELEMENTÓW HUD
 
-        GameObject foundGForce = GameObject.Find("GForce_Dot"); 
+        GameObject foundGForce = GameObject.Find("GForce_Dot");
         if (foundGForce != null) gForceDot = foundGForce.GetComponent<RectTransform>();
 
-        GameObject foundTractionText = GameObject.Find("TractionLossText"); 
+        GameObject foundTractionText = GameObject.Find("TractionLossText");
         if (foundTractionText != null)
         {
             tractionLossText = foundTractionText.GetComponent<TextMeshProUGUI>();
-            foundTractionText.SetActive(false); 
+            foundTractionText.SetActive(false);
         }
 
         GameObject foundSpeedText = GameObject.Find("SpeedText");
         if (foundSpeedText != null)
         {
             speedText = foundSpeedText.GetComponent<TextMeshProUGUI>();
-            speedText.text = "Speed : 000 km/h"; 
-            speedText.gameObject.SetActive(false); 
+            speedText.text = "Speed : 000 km/h";
+            speedText.gameObject.SetActive(false);
         }
 
         // --- Wyszukiwanie płaskiego obrotomierza (RPMText) ---
@@ -65,7 +69,7 @@ public class DriveManager : MonoBehaviour
         if (foundRPMText != null)
         {
             rpmText = foundRPMText.GetComponent<TextMeshProUGUI>();
-            rpmText.text = "RPM   : [..........] 0800"; 
+            rpmText.text = "RPM   : [..........] 0800";
             rpmText.gameObject.SetActive(false); // Ukrywamy przy szkicowaniu
             Debug.Log("Telemetria: Znaleziono RPMText!");
         }
@@ -74,7 +78,7 @@ public class DriveManager : MonoBehaviour
         if (timerText != null)
         {
             timerText.text = "00:00.00";
-            timerText.gameObject.SetActive(false); 
+            timerText.gameObject.SetActive(false);
         }
     }
 
@@ -89,7 +93,7 @@ public class DriveManager : MonoBehaviour
             timerText.text = string.Format("{0:00}:{1:00}:{2:00}", minutes, seconds, fraction);
         }
 
-        UpdateTelemetry(); 
+        UpdateTelemetry();
     }
 
     private void UpdateTelemetry()
@@ -118,7 +122,7 @@ public class DriveManager : MonoBehaviour
             // Symulacja biegów (zakładamy zmianę co ok. 35 km/h)
             float speedPerGear = 35f;
             float speedInCurrentGear = speed % speedPerGear;
-            
+
             // Procent wkręcenia na obroty (od 0.0 do 1.0)
             float rpmPercent = speedInCurrentGear / speedPerGear;
 
@@ -126,7 +130,7 @@ public class DriveManager : MonoBehaviour
             if (speed < 2f && inputGas > 0.1f)
             {
                 // Pulsowanie obrotów przy wciśniętym gazie na postoju
-                rpmPercent = (Mathf.Sin(Time.time * 15f) * 0.1f) + 0.9f; 
+                rpmPercent = (Mathf.Sin(Time.time * 15f) * 0.1f) + 0.9f;
             }
             else if (speed < 2f && inputGas < 0.1f)
             {
@@ -142,9 +146,7 @@ public class DriveManager : MonoBehaviour
             // Rysowanie płaskiego paska ASCII (15 znaków szerokości)
             int totalBars = 15;
             int activeBars = Mathf.Clamp(Mathf.FloorToInt((currentRPM / 6800f) * totalBars), 0, totalBars);
-            
             string barString = new string('|', activeBars) + new string('.', totalBars - activeBars);
-            
             rpmText.text = string.Format("RPM   : [{0}] {1:0000}", barString, Mathf.FloorToInt(currentRPM));
         }
 
@@ -152,17 +154,21 @@ public class DriveManager : MonoBehaviour
         if (gForceDot != null)
         {
             float speedFactor = Mathf.Clamp(carController.carSpeed / 50f, 0f, 2f);
-            float inputZ = -Input.GetAxis("Vertical"); 
+            float inputZ = -Input.GetAxis("Vertical");
             float inputX = -Input.GetAxis("Horizontal");
 
             float targetX = inputX * maxDotRange * speedFactor;
-            float targetY = inputZ * maxDotRange * (speedFactor + 0.2f); 
-
+            float targetY = inputZ * maxDotRange * (speedFactor + 0.2f);
             targetX = Mathf.Clamp(targetX, -maxDotRange, maxDotRange);
             targetY = Mathf.Clamp(targetY, -maxDotRange, maxDotRange);
 
             gForceDot.anchoredPosition = Vector2.Lerp(gForceDot.anchoredPosition, new Vector2(targetX, targetY), Time.deltaTime * 6f);
         }
+    }
+
+    public void ReceiveOptimalLine(List<RacingLinePoint> calculatedLine)
+    {
+        optimalLineToFollow = calculatedLine;
     }
 
     public void ResetDriveManager()
@@ -171,7 +177,6 @@ public class DriveManager : MonoBehaviour
         currentTime = 0f;
         currentLap = 0;
         lapTimes.Clear();
-        
         if (timerText != null)
         {
             timerText.text = "00:00.00";
@@ -190,6 +195,15 @@ public class DriveManager : MonoBehaviour
             rpmText.text = "RPM   : [..........] 0800";
             rpmText.gameObject.SetActive(false);
         }
+
+
+        if (spawnedGhostCar != null)
+        {
+            Destroy(spawnedGhostCar);
+            spawnedGhostCar = null;
+        }
+
+        optimalLineToFollow = null;
     }
 
     public void LapCompleted()
@@ -235,7 +249,6 @@ public class DriveManager : MonoBehaviour
 
         currentTime = 0f;
         isTimerRunning = true;
-        
         if (timerText != null)
         {
             timerText.gameObject.SetActive(true);
@@ -244,5 +257,18 @@ public class DriveManager : MonoBehaviour
 
         if (speedText != null) speedText.gameObject.SetActive(true);
         if (rpmText != null) rpmText.gameObject.SetActive(true); // Aktywacja po starcie
+
+
+        if (ghostCarPrefab != null && optimalLineToFollow != null && optimalLineToFollow.Count > 0)
+        {
+            spawnedGhostCar = Instantiate(ghostCarPrefab);
+            GhostCar ghostScript = spawnedGhostCar.GetComponent<GhostCar>();
+
+            if (ghostScript != null)
+            {
+                ghostScript.playerCar = carController;
+                ghostScript.SetPathAndStart(optimalLineToFollow);
+            }
+        }
     }
 }
