@@ -35,6 +35,10 @@ public class InputController : MonoBehaviour
         lineRenderer.startColor = Color.green;
         lineRenderer.endColor = Color.green;
         lineRenderer.loop = false;
+<<<<<<< HEAD
+=======
+
+>>>>>>> c9ab4329d9bc9f62a32a13cf525dc8739bac2996
         if (modeButtonText != null)
         {
             modeButtonText.text = "[ MODE: POINTER ]";
@@ -44,17 +48,13 @@ public class InputController : MonoBehaviour
 
     void Update()
     {
-        // Jeśli tor wygenerowany (jazda autem) lub tryb rysowania wyłączony -> nic nie robimy
         if (isTrackDrawn || !isDrawingModeActive) return;
 
-        // Blokada: Rysujemy tylko, jeśli kursor jest nad DrawingPanel
         if (EventSystem.current.IsPointerOverGameObject())
         {
             if (!IsPointerOverDrawingArea()) return;
         }
 
-        // --- AUTOMATYCZNY RESET ---
-        // Przy nowym kliknięciu (zaczynamy rysować nową linię), czyścimy starą
         if (Input.GetMouseButtonDown(0))
         {
             if (rawPoints.Count > 0)
@@ -62,16 +62,26 @@ public class InputController : MonoBehaviour
                 rawPoints.Clear();
                 filteredPoints.Clear();
                 lineRenderer.positionCount = 0;
-                lineRenderer.loop = false; // Rozłączamy starą pętlę
+                lineRenderer.loop = false;
+            }
+			WelcomeTerminal welcome = Object.FindAnyObjectByType<WelcomeTerminal>();
+            if (welcome != null) welcome.HideMessage();
+            if (modeButtonText != null)
+            {
+                modeButtonText.text = "[ MODE: DRAWING ]";
+                modeButtonText.color = new Color(0f, 1f, 0f);
             }
         }
 
-        // --- RYSOWANIE PUNKTÓW ---
         if (Input.GetMouseButton(0))
         {
             float depth = Mathf.Abs(Camera.main.transform.position.y);
             Vector3 mouseScreenPos = new Vector3(Input.mousePosition.x, Input.mousePosition.y, depth);
             Vector3 mousePos = Camera.main.ScreenToWorldPoint(mouseScreenPos);
+<<<<<<< HEAD
+=======
+
+>>>>>>> c9ab4329d9bc9f62a32a13cf525dc8739bac2996
             Vector2 currentPoint = new Vector2(mousePos.x, mousePos.z);
 
             if (rawPoints.Count == 0 || Vector2.Distance(rawPoints[rawPoints.Count - 1], currentPoint) > minPointDistance)
@@ -81,14 +91,12 @@ public class InputController : MonoBehaviour
             }
         }
 
-        // --- ZAKOŃCZENIE SZKICU (PODNIESIENIE MYSZKI) ---
         if (Input.GetMouseButtonUp(0) && rawPoints.Count > 0)
         {
             Vector2 startPoint = rawPoints[0];
             Vector2 endPoint = rawPoints[rawPoints.Count - 1];
             float dist = Vector2.Distance(startPoint, endPoint);
 
-            // Logika domykania pętli z krzywymi Beziera
             if (dist > 2f && rawPoints.Count > 2)
             {
                 Vector2 endDir = (rawPoints[rawPoints.Count - 1] - rawPoints[rawPoints.Count - 2]).normalized;
@@ -111,8 +119,7 @@ public class InputController : MonoBehaviour
 
             ApplyMovingAverage();
             UpdateLine(filteredPoints);
-            lineRenderer.loop = true; // Zamykamy pętlę z gładkimi punktami
-            Debug.Log("Szkic wprowadzony. Oczekuję na uruchomienie EXECUTE_APEXGEN.");
+            lineRenderer.loop = true;
         }
     }
 
@@ -174,7 +181,7 @@ public class InputController : MonoBehaviour
         isDrawingModeActive = !isDrawingModeActive;
         if (modeButtonText != null)
         {
-            modeButtonText.text = isDrawingModeActive ? "[ MODE: DRAWING_ON ]" : "[ MODE: DRAWING_OFF ]";
+            modeButtonText.text = isDrawingModeActive ? "[ MODE: DRAWING ]" : "[ MODE: DRAWING_OFF ]";
             modeButtonText.color = isDrawingModeActive ? new Color(0f, 1f, 0f) : new Color(0.4f, 0.4f, 0.4f);
         }
     }
@@ -183,8 +190,43 @@ public class InputController : MonoBehaviour
     {
         if (filteredPoints.Count < 2 || isTrackDrawn) return;
 
+<<<<<<< HEAD
         isTrackDrawn = true;
+=======
+>>>>>>> c9ab4329d9bc9f62a32a13cf525dc8739bac2996
         TrackGenerator generator = GetComponent<TrackGenerator>();
+        float safeDistance = (generator != null) ? generator.trackWidth + 1.5f : 9.5f;
+
+        // --- POTRÓJNY SKANER BEZPIECZEŃSTWA (ZERA LITOŚCI DLA ARTEFAKTÓW) ---
+        bool hasIntersections = IsTrackIntersecting(filteredPoints);
+        bool isTooClose = IsTrackTooClose(filteredPoints, safeDistance);
+        bool hasSharpTurns = HasSharpTurns(filteredPoints, 35f); // 35 stopni twardego limitu łamania geometrii
+
+        if (hasIntersections || isTooClose || hasSharpTurns)
+        {
+            Debug.LogWarning("Wykryto błędną geometrię toru! Generowanie zablokowane.");
+
+            if (modeButtonText != null)
+            {
+                if (hasIntersections)
+                    modeButtonText.text = "[ BŁĄD: TOR SIĘ PRZECINA! ]";
+                else if (hasSharpTurns)
+                    modeButtonText.text = "[ BŁĄD: ZBYT OSTRY ZAKRĘT! ]";
+                else
+                    modeButtonText.text = "[ BŁĄD: TRASY ZBYT BLISKO SIEBIE! ]";
+
+                modeButtonText.color = Color.red;
+            }
+
+            rawPoints.Clear();
+            filteredPoints.Clear();
+            lineRenderer.positionCount = 0;
+            lineRenderer.loop = false;
+
+            return; // Odrzucamy trasę!
+        }
+
+        isTrackDrawn = true;
         if (generator != null) generator.BuildTrackBoundaries(filteredPoints);
 
         List<RacingLinePoint> optimalPath = null;
@@ -205,6 +247,7 @@ public class InputController : MonoBehaviour
         if (dm != null)
         {
             dm.ShowButton(filteredPoints);
+<<<<<<< HEAD
             if (optimalPath != null)
             {
                 dm.ReceiveOptimalLine(optimalPath);
@@ -214,11 +257,15 @@ public class InputController : MonoBehaviour
         lineRenderer.enabled = false;
         CarPanelTerminal terminal = GetComponent<CarPanelTerminal>();
         if (terminal != null) terminal.BootUpPanel();
+=======
+            dm.StartDriving();
+        }
+        lineRenderer.enabled = false;
+>>>>>>> c9ab4329d9bc9f62a32a13cf525dc8739bac2996
     }
 
     public void ClearData()
     {
-        // 1. Czyszczenie punktów i przywrócenie zielonej linii szkicu
         rawPoints.Clear();
         filteredPoints.Clear();
         lineRenderer.positionCount = 0;
@@ -226,15 +273,17 @@ public class InputController : MonoBehaviour
         lineRenderer.enabled = true;
         isTrackDrawn = false;
 
+<<<<<<< HEAD
         // 2. Blokada trybu rysowania
+=======
+>>>>>>> c9ab4329d9bc9f62a32a13cf525dc8739bac2996
         isDrawingModeActive = false;
         if (modeButtonText != null)
         {
-            modeButtonText.text = "[ MODE: DRAWING_OFF ]";
+            modeButtonText.text = "[ MODE: POINTER ]";
             modeButtonText.color = new Color(0.4f, 0.4f, 0.4f);
         }
 
-        // 3. Reset kamery głównej do widoku 2D / Top-Down
         if (Camera.main != null)
         {
             Camera.main.transform.SetParent(null);
@@ -244,6 +293,7 @@ public class InputController : MonoBehaviour
             Camera.main.orthographicSize = 80f;
         }
 
+<<<<<<< HEAD
         // 4. USUNIĘCIE WSZYSTKICH WYGENEROWANYCH OBIEKTÓW TORU I LINII
         // UWAGA: Wpisz tutaj WSZYSTKIE nazwy obiektów, które pojawiają się w Hierarchy po wygenerowaniu toru!
         string[] objectsToDestroy = new string[]
@@ -253,35 +303,132 @@ public class InputController : MonoBehaviour
             "TrackBoundaries",     // <-- Zmień na nazwę białych krawędzi
             "OptimalRacingLine",   // <-- Zmień na nazwę linii optymalnej
             "Track(Clone)"         // Czasami Unity dodaje (Clone) do spawnowanych prefabów
+=======
+        string[] objectsToDestroy = new string[]
+        {
+            "CiaglyTor3D",
+            "Podloga",
+            "LewaSciana",
+            "PrawaSciana",
+            "OptimalRacingLine",
+            "CzerwonaLiniaWyscigowa"
+>>>>>>> c9ab4329d9bc9f62a32a13cf525dc8739bac2996
         };
 
         foreach (string objName in objectsToDestroy)
         {
-            // Znajdujemy obiekt...
             GameObject obj = GameObject.Find(objName);
-            // ...i jeśli istnieje, brutalnie go niszczymy
             if (obj != null) Destroy(obj);
         }
 
-        // 5. Usunięcie samochodu
         GameObject car = GameObject.FindGameObjectWithTag("Player");
         if (car != null) Destroy(car);
 
-        // 6. Reset stopera i parametrów jazdy
         DriveManager dm = Object.FindAnyObjectByType<DriveManager>();
         if (dm != null)
         {
             dm.ResetDriveManager();
         }
+<<<<<<< HEAD
 
         CarPanelTerminal terminal = GetComponent<CarPanelTerminal>();
         if (terminal != null) terminal.ResetPanel();
         // 7. Reset Minimapy (jeśli rysuje własną linię)
         MinimapSetup minimap = Object.FindAnyObjectByType<MinimapSetup>();
         if (minimap != null)
+=======
+    }
+
+    // --- 1. SKANER OSTREGO ZAŁAMANIA KĄTÓW (Blokuje odwracające się ściany) ---
+    private bool HasSharpTurns(List<Vector2> points, float maxAngle)
+    {
+        if (points == null || points.Count < 3) return false;
+
+        for (int i = 0; i < points.Count; i++)
+>>>>>>> c9ab4329d9bc9f62a32a13cf525dc8739bac2996
         {
-            // Jeśli masz w MinimapSetup metodę np. ClearMinimap(), odkomentuj linię poniżej:
-            // minimap.ClearMinimap(); 
+            Vector2 prev = points[(i - 1 + points.Count) % points.Count];
+            Vector2 curr = points[i];
+            Vector2 next = points[(i + 1) % points.Count];
+
+            Vector2 dirIn = (curr - prev).normalized;
+            Vector2 dirOut = (next - curr).normalized;
+
+            float angle = Vector2.Angle(dirIn, dirOut);
+
+            if (angle > maxAngle)
+            {
+                return true;
+            }
         }
+        return false;
+    }
+
+    // --- 2. SKANER ZBYT BLISKICH TRAS ---
+    private bool IsTrackTooClose(List<Vector2> points, float minSafeDistance)
+    {
+        if (points == null || points.Count < 10) return false;
+
+        int indexOffsetTolerance = Mathf.CeilToInt((minSafeDistance * 2.5f) / minPointDistance);
+
+        for (int i = 0; i < points.Count; i++)
+        {
+            for (int j = i + indexOffsetTolerance; j < points.Count; j++)
+            {
+                if (i < indexOffsetTolerance && j > points.Count - indexOffsetTolerance) continue;
+
+                float distance = Vector2.Distance(points[i], points[j]);
+
+                if (distance < minSafeDistance)
+                {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    // --- 3. MATEMATYKA WYKRYWANIA SKRZYŻOWAŃ ---
+    private bool IsTrackIntersecting(List<Vector2> points)
+    {
+        if (points == null || points.Count < 4) return false;
+
+        for (int i = 0; i < points.Count; i++)
+        {
+            Vector2 p1 = points[i];
+            Vector2 p2 = points[(i + 1) % points.Count];
+
+            for (int j = i + 2; j < points.Count; j++)
+            {
+                if (i == 0 && j == points.Count - 1) continue;
+                if (j == (i - 1 + points.Count) % points.Count) continue;
+
+                Vector2 p3 = points[j];
+                Vector2 p4 = points[(j + 1) % points.Count];
+
+                if (TryGetIntersection(p1, p2, p3, p4))
+                {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private bool TryGetIntersection(Vector2 p1, Vector2 p2, Vector2 p3, Vector2 p4)
+    {
+        float denominator = (p4.y - p3.y) * (p2.x - p1.x) - (p4.x - p3.x) * (p2.y - p1.y);
+
+        if (denominator == 0) return false;
+
+        float ua = ((p4.x - p3.x) * (p1.y - p3.y) - (p4.y - p3.y) * (p1.x - p3.x)) / denominator;
+        float ub = ((p2.x - p1.x) * (p1.y - p3.y) - (p2.y - p1.y) * (p1.x - p3.x)) / denominator;
+
+        if (ua > 0.01f && ua < 0.99f && ub > 0.01f && ub < 0.99f)
+        {
+            return true;
+        }
+
+        return false;
     }
 }
