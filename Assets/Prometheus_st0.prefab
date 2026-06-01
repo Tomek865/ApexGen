@@ -662,7 +662,7 @@ GameObject:
   - component: {fileID: 1996114055477824427}
   - component: {fileID: 7996540609356261691}
   m_Layer: 0
-  m_Name: Prometheus
+  m_Name: Prometheus_st0
   m_TagString: Player
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
