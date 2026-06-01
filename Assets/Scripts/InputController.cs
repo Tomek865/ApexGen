@@ -20,7 +20,7 @@ public class InputController : MonoBehaviour
 
     [Header("UI References")]
     public TextMeshProUGUI modeButtonText;
-    private bool isDrawingModeActive = true;
+    private bool isDrawingModeActive = false;
 
     void Start()
     {
@@ -35,10 +35,16 @@ public class InputController : MonoBehaviour
         lineRenderer.startColor = Color.green;
         lineRenderer.endColor = Color.green;
         lineRenderer.loop = false;
+		if (modeButtonText != null)
+        {
+            modeButtonText.text = "[ MODE: POINTER ]";
+            modeButtonText.color = new Color(0.4f, 0.4f, 0.4f);
+        }
     }
 
-    void Update()
+        void Update()
     {
+        // Jeśli tor wygenerowany (jazda autem) lub tryb rysowania wyłączony -> nic nie robimy
         if (isTrackDrawn || !isDrawingModeActive) return;
 
         // Blokada: Rysujemy tylko, jeśli kursor jest nad DrawingPanel
@@ -47,9 +53,22 @@ public class InputController : MonoBehaviour
             if (!IsPointerOverDrawingArea()) return;
         }
 
+        // --- AUTOMATYCZNY RESET ---
+        // Przy nowym kliknięciu (zaczynamy rysować nową linię), czyścimy starą
+        if (Input.GetMouseButtonDown(0))
+        {
+            if (rawPoints.Count > 0)
+            {
+                rawPoints.Clear();
+                filteredPoints.Clear();
+                lineRenderer.positionCount = 0;
+                lineRenderer.loop = false; // Rozłączamy starą pętlę
+            }
+        }
+
+        // --- RYSOWANIE PUNKTÓW ---
         if (Input.GetMouseButton(0))
         {
-            // Kamera jest Orthographic i wisi na Y=50, więc łapiemy poprawną głębię
             float depth = Mathf.Abs(Camera.main.transform.position.y);
             Vector3 mouseScreenPos = new Vector3(Input.mousePosition.x, Input.mousePosition.y, depth);
             Vector3 mousePos = Camera.main.ScreenToWorldPoint(mouseScreenPos);
@@ -63,12 +82,14 @@ public class InputController : MonoBehaviour
             }
         }
 
+        // --- ZAKOŃCZENIE SZKICU (PODNIESIENIE MYSZKI) ---
         if (Input.GetMouseButtonUp(0) && rawPoints.Count > 0)
         {
             Vector2 startPoint = rawPoints[0];
             Vector2 endPoint = rawPoints[rawPoints.Count - 1];
             float dist = Vector2.Distance(startPoint, endPoint);
 
+            // Logika domykania pętli z krzywymi Beziera
             if (dist > 2f && rawPoints.Count > 2)
             {
                 Vector2 endDir = (rawPoints[rawPoints.Count - 1] - rawPoints[rawPoints.Count - 2]).normalized;
@@ -91,7 +112,7 @@ public class InputController : MonoBehaviour
 
             ApplyMovingAverage();
             UpdateLine(filteredPoints);
-            lineRenderer.loop = true;
+            lineRenderer.loop = true; // Zamykamy pętlę z gładkimi punktami
             Debug.Log("Szkic wprowadzony. Oczekuję na uruchomienie EXECUTE_APEXGEN.");
         }
     }
@@ -186,36 +207,73 @@ public class InputController : MonoBehaviour
             dm.ShowButton(filteredPoints);
             dm.StartDriving(); 
         }
+		lineRenderer.enabled = false;
     }
 
-    public void ClearData()
+           public void ClearData()
     {
+        // 1. Czyszczenie punktów i przywrócenie zielonej linii szkicu
         rawPoints.Clear();
         filteredPoints.Clear();
         lineRenderer.positionCount = 0;
         lineRenderer.loop = false;
+        lineRenderer.enabled = true;
         isTrackDrawn = false;
         
-        isDrawingModeActive = true;
+        // 2. Blokada trybu rysowania
+        isDrawingModeActive = false; 
         if (modeButtonText != null)
         {
-            modeButtonText.text = "[ MODE: DRAWING_ON ]";
-            modeButtonText.color = new Color(0f, 1f, 0f);
+            modeButtonText.text = "[ MODE: DRAWING_OFF ]";
+            modeButtonText.color = new Color(0.4f, 0.4f, 0.4f);
         }
 
-        // Zabezpieczenie przed resetowaniem kamery jeśli jest przypięta do Canvasu
-        if (Camera.main != null && Camera.main.transform.parent != null && Camera.main.transform.parent.name != "Canvas")
+        // 3. Reset kamery głównej do widoku 2D / Top-Down
+        if (Camera.main != null)
         {
             Camera.main.transform.SetParent(null);
             Camera.main.transform.position = new Vector3(0, 50, 0);
             Camera.main.transform.rotation = Quaternion.Euler(90, 0, 0);
             Camera.main.orthographic = true;
+            Camera.main.orthographicSize = 80f; 
         }
 
-        GameObject trackCollider = GameObject.Find("WidocznyTor3D");
-        if (trackCollider != null) Destroy(trackCollider);
+        // 4. USUNIĘCIE WSZYSTKICH WYGENEROWANYCH OBIEKTÓW TORU I LINII
+        // UWAGA: Wpisz tutaj WSZYSTKIE nazwy obiektów, które pojawiają się w Hierarchy po wygenerowaniu toru!
+        string[] objectsToDestroy = new string[] 
+        { 
+            "WidocznyTor3D", 
+            "TrackMesh",           // <-- Zmień na właściwą nazwę asfaltu, jeśli jest inna
+            "TrackBoundaries",     // <-- Zmień na nazwę białych krawędzi
+            "OptimalRacingLine",   // <-- Zmień na nazwę linii optymalnej
+            "Track(Clone)"         // Czasami Unity dodaje (Clone) do spawnowanych prefabów
+        };
 
+        foreach (string objName in objectsToDestroy)
+        {
+            // Znajdujemy obiekt...
+            GameObject obj = GameObject.Find(objName);
+            // ...i jeśli istnieje, brutalnie go niszczymy
+            if (obj != null) Destroy(obj);
+        }
+
+        // 5. Usunięcie samochodu
         GameObject car = GameObject.FindGameObjectWithTag("Player");
         if (car != null) Destroy(car);
+
+        // 6. Reset stopera i parametrów jazdy
+        DriveManager dm = Object.FindAnyObjectByType<DriveManager>();
+        if (dm != null)
+        {
+            dm.ResetDriveManager();
+        }
+
+        // 7. Reset Minimapy (jeśli rysuje własną linię)
+        MinimapSetup minimap = Object.FindAnyObjectByType<MinimapSetup>();
+        if (minimap != null)
+        {
+            // Jeśli masz w MinimapSetup metodę np. ClearMinimap(), odkomentuj linię poniżej:
+            // minimap.ClearMinimap(); 
+        }
     }
 }

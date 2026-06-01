@@ -1967,6 +1967,7 @@ MonoBehaviour:
   startButton: {fileID: 1942154828}
   mainCamera: {fileID: 330585545}
   timerText: {fileID: 6313161}
+  maxDotRange: 50
   carPrefab: {fileID: 6533272879470977894, guid: 1a548466f4ec56b428f8104ae3ad1e76, type: 3}
   currentLap: 0
   lapTimes: []
@@ -3198,7 +3199,7 @@ AudioListener:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1250084685}
-  m_Enabled: 1
+  m_Enabled: 0
 --- !u!20 &1250084688
 Camera:
   m_ObjectHideFlags: 0
