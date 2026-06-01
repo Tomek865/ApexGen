@@ -58,7 +58,7 @@ public class DriveManager : MonoBehaviour
         if (foundSpeedText != null)
         {
             speedText = foundSpeedText.GetComponent<TextMeshProUGUI>();
-            speedText.text = "Speed : 000 km/h";
+            speedText.text = "000 km/h";
             speedText.gameObject.SetActive(false);
         }
 
@@ -66,7 +66,7 @@ public class DriveManager : MonoBehaviour
         if (foundRPMText != null)
         {
             rpmText = foundRPMText.GetComponent<TextMeshProUGUI>();
-            rpmText.text = "RPM   : [..........] 0800";
+            rpmText.text = "[..........] 0800";
             rpmText.gameObject.SetActive(false);
         }
 
@@ -109,7 +109,7 @@ public class DriveManager : MonoBehaviour
         if (speedText != null)
         {
             int currentSpeed = Mathf.FloorToInt(Mathf.Abs(carController.carSpeed));
-            speedText.text = string.Format("Speed : {0:D3} km/h", currentSpeed);
+            speedText.text = string.Format("{0:D3} km/h", currentSpeed);
         }
 
         // 3. FAKE RPM
@@ -140,7 +140,7 @@ public class DriveManager : MonoBehaviour
 
             string barString = new string('|', activeBars) + new string('.', totalBars - activeBars);
 
-            rpmText.text = string.Format("RPM   : [{0}] {1:0000}", barString, Mathf.FloorToInt(currentRPM));
+            rpmText.text = string.Format("[{0}] {1:0000}", barString, Mathf.FloorToInt(currentRPM));
         }
 
         // 4. G-Force Meter
@@ -182,13 +182,13 @@ public class DriveManager : MonoBehaviour
 
         if (speedText != null)
         {
-            speedText.text = "Speed : 000 km/h";
+            speedText.text = "000 km/h";
             speedText.gameObject.SetActive(false);
         }
 
         if (rpmText != null)
         {
-            rpmText.text = "RPM   : [..........] 0800";
+            rpmText.text = "[..........] 0800";
             rpmText.gameObject.SetActive(false);
         }
     }
