@@ -11,12 +11,9 @@ public struct RacingLinePoint
 public class RacingLineCalculator : MonoBehaviour
 {
     [Header("REFERENCJE")]
-    public CarSetupData carData;
+    public PrometeoCarController playerCar; // Przypnij samochód gracza!
     [Space(10)]
-    /*public int maxSpeed = 90;
-    public int maxSteeringAngle = 27;
-    public int brakeForce = 350;
-    public float carWidth = 2.0f;*/
+    public float carWidth = 2.0f; // Szerokość auta zostawiamy tutaj, bo Prometeo jej nie kalkuluje
     public int optimizationIterations = 150;
     private LineRenderer optimalLineRenderer;
 
@@ -28,7 +25,7 @@ public class RacingLineCalculator : MonoBehaviour
         int count = centerPoints.Count;
         List<RacingLinePoint> optimalLine = new List<RacingLinePoint>();
 
-        float maxOffset = (trackWidth / 2f) - (carData.carWidth / 2f) - 0.5f;
+        float maxOffset = (trackWidth / 2f) - (carWidth / 2f) - 0.5f;
         if (maxOffset < 0) maxOffset = 0;
 
         Vector2[] optPositions = centerPoints.ToArray();
@@ -83,12 +80,12 @@ public class RacingLineCalculator : MonoBehaviour
             // Zmieniamy dzielnik na 90f. Patrząc tak daleko w przód, kąt 90+ stopni to już brutalny nawrót.
             float curveSeverity = Mathf.Clamp01(angle / 90f);
             float minSpeed = 15f;
-            float safeSpeed = Mathf.Lerp(carData.maxSpeed, minSpeed, curveSeverity);
+            float safeSpeed = Mathf.Lerp(playerCar.maxSpeed, minSpeed, curveSeverity);
 
             optimalLine.Add(new RacingLinePoint
             {
                 Position = pCurr,
-                TargetSpeedKmh = Mathf.Clamp(safeSpeed, minSpeed, carData.maxSpeed)
+                TargetSpeedKmh = Mathf.Clamp(safeSpeed, minSpeed, playerCar.maxSpeed)
             });
         }
 
@@ -130,7 +127,7 @@ public class RacingLineCalculator : MonoBehaviour
 
     private List<RacingLinePoint> ApplyBrakingZones(List<RacingLinePoint> line)
     {
-        float decelerationRate = carData.brakeForce / 75f;
+        float decelerationRate = playerCar.brakeForce / 75f;
 
         // Podwójna pętla! Auto będzie poprawnie hamować przed zakrętem, nawet jeśli zakręt jest zaraz za Start/Metą
         for (int pass = 0; pass < 2; pass++)
@@ -189,7 +186,7 @@ public class RacingLineCalculator : MonoBehaviour
         {
             float currentSpeed = optimalLine[i].TargetSpeedKmh;
             float minSpeed = 15f;
-            float speedFactor = Mathf.InverseLerp(minSpeed, (float)carData.maxSpeed, currentSpeed);
+            float speedFactor = Mathf.InverseLerp(minSpeed, (float)playerCar.maxSpeed, currentSpeed);
 
             Color pointColor = EvaluateSpeedColor(speedFactor);
             float gradientTime = (float)i / (optimalLine.Count - 1);
