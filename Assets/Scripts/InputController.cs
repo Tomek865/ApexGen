@@ -61,10 +61,11 @@ public class InputController : MonoBehaviour
                 lineRenderer.positionCount = 0;
                 lineRenderer.loop = false;
             }
-
+			WelcomeTerminal welcome = Object.FindAnyObjectByType<WelcomeTerminal>();
+            if (welcome != null) welcome.HideMessage();
             if (modeButtonText != null)
             {
-                modeButtonText.text = "[ MODE: DRAWING_ON ]";
+                modeButtonText.text = "[ MODE: DRAWING ]";
                 modeButtonText.color = new Color(0f, 1f, 0f);
             }
         }
@@ -174,7 +175,7 @@ public class InputController : MonoBehaviour
         isDrawingModeActive = !isDrawingModeActive;
         if (modeButtonText != null)
         {
-            modeButtonText.text = isDrawingModeActive ? "[ MODE: DRAWING_ON ]" : "[ MODE: DRAWING_OFF ]";
+            modeButtonText.text = isDrawingModeActive ? "[ MODE: DRAWING ]" : "[ MODE: DRAWING_OFF ]";
             modeButtonText.color = isDrawingModeActive ? new Color(0f, 1f, 0f) : new Color(0.4f, 0.4f, 0.4f);
         }
     }
@@ -251,7 +252,7 @@ public class InputController : MonoBehaviour
         isDrawingModeActive = false;
         if (modeButtonText != null)
         {
-            modeButtonText.text = "[ MODE: DRAWING_OFF ]";
+            modeButtonText.text = "[ MODE: POINTER ]";
             modeButtonText.color = new Color(0.4f, 0.4f, 0.4f);
         }
 

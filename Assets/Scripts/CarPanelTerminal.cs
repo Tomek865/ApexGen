@@ -6,8 +6,6 @@ public class CarPanelTerminal : MonoBehaviour
 {
     private TextMeshProUGUI panelText;
     private Coroutine typingCoroutine;
-
-    // Surowe dane inżynieryjne wyświetlane na panelu w stylu retro
     private string specsTemplate = 
         "> UPLINK ESTABLISHED\n" +
         "> FETCHING VEHICLE DATA...\n\n" +
@@ -16,18 +14,23 @@ public class CarPanelTerminal : MonoBehaviour
         "MAPPING : 95 RON (FACTORY)\n" +
         "CLUTCH  : REINFORCED (500Nm)\n" +
         "TIRES   : HANKOOK R-SPEC\n" +
-        "WEIGHT  : 950 KG\n\n" +
-        "> SYSTEM READY.";
+        "WEIGHT  : 950 KG\n\n";
 
     void Start()
     {
-        // Omijamy Inspector - skrypt sam szuka tekstu po nazwie
         GameObject textObj = GameObject.Find("CarSpecsText"); 
         if (textObj != null)
         {
             panelText = textObj.GetComponent<TextMeshProUGUI>();
             panelText.text = "_"; // Migający kursor na start
+            BootUpPanel();
         }
+        else
+        {
+            Debug.Log("CarSpecsText not found");
+        }
+
+      
     }
 
     public void BootUpPanel()

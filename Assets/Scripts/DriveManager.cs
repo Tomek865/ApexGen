@@ -8,50 +8,40 @@ public class DriveManager : MonoBehaviour
     public GameObject startButton;
     public Camera mainCamera;
     public TextMeshProUGUI timerText;
-    public TextMeshProUGUI bestLapText; // <--- NOWY WSKAŹNIK (Przeciągnij tutaj obiekt tekstowy z Inspektora)
+    public TextMeshProUGUI bestLapText;
 
-    [Header("Telemetria (Konfiguracja w kodzie)")]
+    [Header("Telemetria")]
     public float maxDotRange = 50f;
-
-    [Header("Pojazd")]
     public GameObject carPrefab;
 
     private Vector2 startPoint;
     private Vector2 nextPoint;
-
     private bool isTimerRunning = false;
     private float currentTime = 0f;
-    private float bestLapTime = Mathf.Infinity; // Przechowuje rekord dla obecnej trasy
-
-    [Header("Okrążenia")]
+    private float bestLapTime = Mathf.Infinity; 
     public int currentLap = 0;
     public List<float> lapTimes = new List<float>();
 
-    // --- ZMIENNE DO TELEMETRII ---
     private Rigidbody carRb;
     private PrometeoCarController carController;
 
-    // Prywatne referencje interfejsu UI
     private RectTransform gForceDot;
     private TextMeshProUGUI tractionLossText;
     private TextMeshProUGUI speedText;
     private TextMeshProUGUI rpmText;
 
-    // Płynność wskazówki obrotomierza
     private float currentRPM = 800f;
 
     void Start()
     {
-        // 1. AUTOMATYCZNE WYSZUKIWANIE ELEMENTÓW HUD
-
         GameObject foundGForce = GameObject.Find("GForce_Dot");
         if (foundGForce != null) gForceDot = foundGForce.GetComponent<RectTransform>();
 
-        GameObject foundTractionText = GameObject.Find("TractionLossText");
+        GameObject foundTractionText = GameObject.Find("WarningText");
         if (foundTractionText != null)
         {
             tractionLossText = foundTractionText.GetComponent<TextMeshProUGUI>();
-            foundTractionText.SetActive(false);
+            tractionLossText.gameObject.SetActive(false);
         }
 
         GameObject foundSpeedText = GameObject.Find("SpeedText");
@@ -70,7 +60,6 @@ public class DriveManager : MonoBehaviour
             rpmText.gameObject.SetActive(false);
         }
 
-        // 2. STOPER
         if (timerText != null)
         {
             timerText.text = "00:00.00";
@@ -99,28 +88,34 @@ public class DriveManager : MonoBehaviour
     {
         if (carRb == null || carController == null) return;
 
-        // 1. Traction Loss
         if (tractionLossText != null)
         {
-            tractionLossText.gameObject.SetActive(carController.isDrifting);
+            float lateralSpeed = Vector3.Dot(carRb.linearVelocity, carRb.transform.right);
+            bool isLosingTraction = Mathf.Abs(lateralSpeed) > 2.5f && carRb.linearVelocity.magnitude > 2f;
+
+            if (isLosingTraction)
+            {
+                bool isBlinking = Mathf.Sin(Time.time * 30f) > 0f;
+                tractionLossText.gameObject.SetActive(isBlinking);
+            }
+            else
+            {
+                tractionLossText.gameObject.SetActive(false);
+            }
         }
 
-        // 2. Speedometer
         if (speedText != null)
         {
             int currentSpeed = Mathf.FloorToInt(Mathf.Abs(carController.carSpeed));
             speedText.text = string.Format("{0:D3} km/h", currentSpeed);
         }
 
-        // 3. FAKE RPM
         if (rpmText != null)
         {
             float speed = Mathf.Abs(carController.carSpeed);
             float inputGas = Mathf.Abs(Input.GetAxis("Vertical"));
-
             float speedPerGear = 35f;
             float speedInCurrentGear = speed % speedPerGear;
-
             float rpmPercent = speedInCurrentGear / speedPerGear;
 
             if (speed < 2f && inputGas > 0.1f)
@@ -137,13 +132,11 @@ public class DriveManager : MonoBehaviour
 
             int totalBars = 15;
             int activeBars = Mathf.Clamp(Mathf.FloorToInt((currentRPM / 6800f) * totalBars), 0, totalBars);
-
             string barString = new string('|', activeBars) + new string('.', totalBars - activeBars);
-
+            
             rpmText.text = string.Format("[{0}] {1:0000}", barString, Mathf.FloorToInt(currentRPM));
         }
 
-        // 4. G-Force Meter
         if (gForceDot != null)
         {
             float speedFactor = Mathf.Clamp(carController.carSpeed / 50f, 0f, 2f);
@@ -166,7 +159,7 @@ public class DriveManager : MonoBehaviour
         currentTime = 0f;
         currentLap = 0;
         lapTimes.Clear();
-        bestLapTime = Mathf.Infinity; // Resetujemy rekord do nieskończoności dla nowego toru
+        bestLapTime = Mathf.Infinity;
 
         if (timerText != null)
         {
@@ -191,6 +184,11 @@ public class DriveManager : MonoBehaviour
             rpmText.text = "[..........] 0800";
             rpmText.gameObject.SetActive(false);
         }
+
+        if (tractionLossText != null)
+        {
+            tractionLossText.gameObject.SetActive(false);
+        }
     }
 
     public void LapCompleted()
@@ -198,17 +196,13 @@ public class DriveManager : MonoBehaviour
         currentLap++;
         lapTimes.Add(currentTime);
 
-        // --- Logika Najlepszego Okrążenia ---
         if (currentTime < bestLapTime)
         {
             bestLapTime = currentTime;
-            if (bestLapText != null)
-            {
-                bestLapText.text = "BEST: " + FormatTime(bestLapTime);
-            }
+            if (bestLapText != null) bestLapText.text = "BEST: " + FormatTime(bestLapTime);
         }
 
-        currentTime = 0f; // Zerujemy zegar na kolejne okrążenie
+        currentTime = 0f;
     }
 
     public void StopTimer()
@@ -254,12 +248,11 @@ public class DriveManager : MonoBehaviour
             timerText.color = Color.white;
         }
 
-        if (bestLapText != null) bestLapText.gameObject.SetActive(true); // Aktywacja po starcie
+        if (bestLapText != null) bestLapText.gameObject.SetActive(true);
         if (speedText != null) speedText.gameObject.SetActive(true);
         if (rpmText != null) rpmText.gameObject.SetActive(true);
     }
 
-    // Prosta metoda formatująca float na czytelny czas (użyta dwukrotnie dla czystości kodu)
     private string FormatTime(float timeToFormat)
     {
         int minutes = Mathf.FloorToInt(timeToFormat / 60F);
