@@ -1501,6 +1501,7 @@ GameObject:
   - component: {fileID: 526456309}
   - component: {fileID: 526456308}
   - component: {fileID: 526456307}
+  - component: {fileID: 526456311}
   m_Layer: 5
   m_Name: CarPanel
   m_TagString: Untagged
@@ -1603,6 +1604,18 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 526456305}
   m_CullTransparentMesh: 1
+--- !u!114 &526456311
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 526456305}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 56991a75e56b4d1694fb8ab8c788ae47, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CarPanelTerminal
 --- !u!1 &556283702
 GameObject:
   m_ObjectHideFlags: 0
@@ -1652,6 +1665,7 @@ GameObject:
   - component: {fileID: 579172930}
   - component: {fileID: 579172931}
   - component: {fileID: 579172932}
+  - component: {fileID: 579172933}
   m_Layer: 0
   m_Name: ApexGenSystem
   m_TagString: Untagged
@@ -1835,6 +1849,18 @@ MonoBehaviour:
   carPrefab: {fileID: 6533272879470977894, guid: 1a548466f4ec56b428f8104ae3ad1e76, type: 3}
   currentLap: 0
   lapTimes: []
+--- !u!114 &579172933
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 579172927}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 56991a75e56b4d1694fb8ab8c788ae47, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CarPanelTerminal
 --- !u!1 &602192603
 GameObject:
   m_ObjectHideFlags: 0
@@ -5479,7 +5505,7 @@ GameObject:
   - component: {fileID: 2015221932}
   - component: {fileID: 2015221931}
   m_Layer: 5
-  m_Name: Text (TMP)
+  m_Name: CarPanelText
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -5786,7 +5812,7 @@ GameObject:
   - component: {fileID: 2141803429}
   - component: {fileID: 2141803428}
   m_Layer: 5
-  m_Name: Text (TMP)
+  m_Name: CarSpecsText
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -5809,7 +5835,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 1}
   m_AnchorMax: {x: 0.5, y: 1}
   m_AnchoredPosition: {x: 35, y: -160.6}
-  m_SizeDelta: {x: 200, y: 50}
+  m_SizeDelta: {x: 400, y: 50}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &2141803428
 MonoBehaviour:
@@ -5831,7 +5857,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: New Text
+  m_text: Specs
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 7c004f08b7e69401182ba3752d7422f9, type: 2}
   m_sharedMaterial: {fileID: -95360230024311390, guid: 7c004f08b7e69401182ba3752d7422f9, type: 2}
@@ -5858,8 +5884,8 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 36
-  m_fontSizeBase: 36
+  m_fontSize: 30
+  m_fontSizeBase: 30
   m_fontWeight: 400
   m_enableAutoSizing: 0
   m_fontSizeMin: 18

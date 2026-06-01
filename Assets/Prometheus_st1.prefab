@@ -173,7 +173,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: dadc21d4c069d4e7792ee1f4e617d38d, type: 2}
+  - {fileID: 2100000, guid: 5377390e95c294b9eae86eb8452ea316, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -747,7 +747,7 @@ MonoBehaviour:
   RRWParticleSystem: {fileID: 3710450954380710789}
   RLWTireSkid: {fileID: 661057595537756714}
   RRWTireSkid: {fileID: 5960756549842190198}
-  useUI: 1
+  useUI: 0
   carSpeedText: {fileID: 0}
   useSounds: 0
   carEngineSound: {fileID: 0}

@@ -208,9 +208,11 @@ public class InputController : MonoBehaviour
             dm.StartDriving(); 
         }
 		lineRenderer.enabled = false;
+		CarPanelTerminal terminal = GetComponent<CarPanelTerminal>();
+        if (terminal != null) terminal.BootUpPanel();
     }
 
-           public void ClearData()
+		public void ClearData()
     {
         // 1. Czyszczenie punktów i przywrócenie zielonej linii szkicu
         rawPoints.Clear();
@@ -267,7 +269,9 @@ public class InputController : MonoBehaviour
         {
             dm.ResetDriveManager();
         }
-
+		
+		CarPanelTerminal terminal = GetComponent<CarPanelTerminal>();
+        if (terminal != null) terminal.ResetPanel();
         // 7. Reset Minimapy (jeśli rysuje własną linię)
         MinimapSetup minimap = Object.FindAnyObjectByType<MinimapSetup>();
         if (minimap != null)

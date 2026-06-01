@@ -29,44 +29,51 @@ public class DriveManager : MonoBehaviour
     private Rigidbody carRb;
     private PrometeoCarController carController;
     
-    // Prywatne referencje
+    // Prywatne referencje interfejsu UI
     private RectTransform gForceDot;
     private TextMeshProUGUI tractionLossText;
+    private TextMeshProUGUI speedText;
 
     void Start()
     {
-        // 1. AUTOMATYCZNE WYSZUKIWANIE UI (BEZ PRZECIĄGANIA W INSPEKTORZE)
-        
-        // Zmień "GForce_Dot" na dokładną nazwę Twojego zielonego kwadracika z okna Hierarchy
+        // 1. AUTOMATYCZNE WYSZUKIWANIE ELEMENTÓW HUD
+
+        // Wyszukiwanie G-Force Dot
         GameObject foundGForce = GameObject.Find("GForce_Dot"); 
         if (foundGForce != null)
         {
             gForceDot = foundGForce.GetComponent<RectTransform>();
             Debug.Log("Telemetria: Znaleziono G-Force Dot!");
         }
-        else
-        {
-            Debug.LogWarning("Telemetria: Nie znaleziono obiektu GForce_Dot. Sprawdź nazwę w Hierarchy.");
-        }
 
-        // Zmień "TractionLossText" na dokładną nazwę Twojego czerwonego napisu z okna Hierarchy
-        GameObject foundTractionText = GameObject.Find("WarningText"); 
+        // Wyszukiwanie Traction Loss Text
+        GameObject foundTractionText = GameObject.Find("TractionLossText"); 
         if (foundTractionText != null)
         {
             tractionLossText = foundTractionText.GetComponent<TextMeshProUGUI>();
-            foundTractionText.SetActive(false); // Ukrywamy na start
+            foundTractionText.SetActive(false); 
             Debug.Log("Telemetria: Znaleziono Traction Loss Text!");
+        }
+
+        // Wyszukiwanie wskaźnika prędkości (SpeedText)
+        GameObject foundSpeedText = GameObject.Find("SpeedText");
+        if (foundSpeedText != null)
+        {
+            speedText = foundSpeedText.GetComponent<TextMeshProUGUI>();
+            speedText.text = "000 km/h"; 
+            speedText.gameObject.SetActive(false); // Ukryte podczas rysowania
+            Debug.Log("Telemetria: Znaleziono SpeedText!");
         }
         else
         {
-            Debug.LogWarning("Telemetria: Nie znaleziono obiektu TractionLossText. Sprawdź nazwę w Hierarchy.");
+            Debug.LogWarning("Telemetria: Nie znaleziono obiektu 'SpeedText' w Hierarchy!");
         }
 
         // 2. STOPER
         if (timerText != null)
         {
             timerText.text = "00:00.00";
-            timerText.gameObject.SetActive(false);
+            timerText.gameObject.SetActive(false); // Ukryte podczas rysowania
         }
     }
 
@@ -82,43 +89,70 @@ public class DriveManager : MonoBehaviour
             timerText.text = string.Format("{0:00}:{1:00}:{2:00}", minutes, seconds, fraction);
         }
 
-        // Wywołanie naszej nowej funkcji w każdej klatce!
+        // Aktualizacja danych na ekranie
         UpdateTelemetry(); 
     }
 
-    // --- NOWA METODA TELEMETRYCZNA ---
     private void UpdateTelemetry()
     {
-        // Jeśli auto jeszcze nie zostało zrespione, nie robimy nic
+        // Blokada, jeśli auto jeszcze nie zespawnowało się na torze
         if (carRb == null || carController == null) return;
 
-        // 1. Obsługa Traction Loss (czyta zmienną z Prometeo)
+        // 1. Obsługa Traction Loss
         if (tractionLossText != null)
         {
             tractionLossText.gameObject.SetActive(carController.isDrifting);
         }
 
-        // 2. Obsługa G-Force Meter oparta na Input (AWSD) i Prędkości
+        // 2. Obsługa cyfrowego prędkościomierza
+        if (speedText != null)
+        {
+            int currentSpeed = Mathf.FloorToInt(carController.carSpeed);
+            // Zabezpieczenie przed wyświetlaniem minusowych wartości na wstecznym
+            currentSpeed = Mathf.Abs(currentSpeed); 
+            speedText.text = string.Format("{0:D3} km/h", currentSpeed);
+        }
+
+        // 3. Obsługa G-Force Meter
         if (gForceDot != null)
         {
-            // Prędkość do mnożnika (zakładamy użyteczny zakres 0-50 km/h dla wychylenia)
             float speedFactor = Mathf.Clamp(carController.carSpeed / 50f, 0f, 2f);
 
-            // Odwrócone wciśnięcie klawiszy dla efektu bezwładności
             float inputZ = -Input.GetAxis("Vertical"); 
             float inputX = -Input.GetAxis("Horizontal");
 
             float targetX = inputX * maxDotRange * speedFactor;
-            float targetY = inputZ * maxDotRange * (speedFactor + 0.2f); // +0.2 żeby było widać ruch przy starcie
+            float targetY = inputZ * maxDotRange * (speedFactor + 0.2f); 
 
             targetX = Mathf.Clamp(targetX, -maxDotRange, maxDotRange);
             targetY = Mathf.Clamp(targetY, -maxDotRange, maxDotRange);
 
-            // Płynny ruch kropki (Lerp)
             gForceDot.anchoredPosition = Vector2.Lerp(gForceDot.anchoredPosition, new Vector2(targetX, targetY), Time.deltaTime * 6f);
         }
     }
-    // ---------------------------------
+
+    public void ResetDriveManager()
+    {
+        // Pełny reset parametrów
+        isTimerRunning = false;
+        currentTime = 0f;
+        currentLap = 0;
+        lapTimes.Clear();
+        
+        // Ukrywanie UI stopera
+        if (timerText != null)
+        {
+            timerText.text = "00:00.00";
+            timerText.gameObject.SetActive(false);
+        }
+
+        // Przywrócenie stanu zerowego i ukrycie prędkościomierza
+        if (speedText != null)
+        {
+            speedText.text = "000 km/h";
+            speedText.gameObject.SetActive(false);
+        }
+    }
 
     public void LapCompleted()
     {
@@ -138,20 +172,6 @@ public class DriveManager : MonoBehaviour
         if (timerText != null) timerText.color = Color.green;
     }
 
-	    public void ResetDriveManager()
-    {
-        isTimerRunning = false;
-        currentTime = 0f;
-        currentLap = 0;
-        lapTimes.Clear();
-        
-        if (timerText != null)
-        {
-            timerText.text = "00:00.00";
-            timerText.gameObject.SetActive(false);
-        }
-    }
-
     public void ShowButton(List<Vector2> drawnPoints)
     {
         if (drawnPoints.Count < 2) return;
@@ -161,19 +181,20 @@ public class DriveManager : MonoBehaviour
 
     public void StartDriving()
     {
-        // Tutaj usunęliśmy gaszenie przycisku, więc EXECUTE_APEXGEN nie zniknie!
-
+        // Ustawienie kamery
         transform.rotation = Quaternion.Euler(90, 0, 0);
 
+        // Spawn pojazdu na początku wygenerowanej optymalnej linii
         Vector3 spawnPos = new Vector3(startPoint.x, 3.0f, startPoint.y);
         Vector3 forwardVector = new Vector3(nextPoint.x - startPoint.x, 0f, nextPoint.y - startPoint.y).normalized;
 
         GameObject spawnedCar = Instantiate(carPrefab, spawnPos, Quaternion.LookRotation(forwardVector));
 
-        // Podpinamy komponenty wygenerowanego auta do telemetrii
+        // Podpięcie komponentów nowego pojazdu do naszego systemu telemetrii
         carRb = spawnedCar.GetComponent<Rigidbody>();
         carController = spawnedCar.GetComponent<PrometeoCarController>();
 
+        // Ustawienie kamery w tryb TPP za samochodem
         if (mainCamera != null)
         {
             mainCamera.orthographic = false;
@@ -184,13 +205,20 @@ public class DriveManager : MonoBehaviour
             mainCamera.transform.localRotation = Quaternion.Euler(15f, 0f, 0f);
         }
 
+        // Uruchomienie układów czasowych
         currentTime = 0f;
         isTimerRunning = true;
         
+        // Aktywacja ukrytych wskaźników UI
         if (timerText != null)
         {
             timerText.gameObject.SetActive(true);
             timerText.color = Color.white;
+        }
+
+        if (speedText != null)
+        {
+            speedText.gameObject.SetActive(true);
         }
     }
 }
